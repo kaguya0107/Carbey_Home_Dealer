@@ -1,0 +1,145 @@
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import { ArrowLeft, Package, CheckCircle2, Truck } from 'lucide-react'
+import { requireMember } from '@/lib/auth/session'
+import { getMemberByUserId } from '@/lib/portal/members'
+import { getDeal, DEAL_STAGE_LABEL, getSettlementPreview } from '@/lib/portal/deals'
+import { getShippingFromPref, getShippingDefaultToPref } from '@/lib/portal/shipping'
+import { listDealCosts } from '@/lib/portal/deal-costs'
+import { PREFECTURES } from '@/lib/portal/prefectures'
+import { yen } from '@/lib/portal/labels'
+import { DarkCard, DarkCardHeader, DarkCardBody } from '@/components/portal-dark/DarkUI'
+import DealBoard from '@/components/portal-dark/DealBoard'
+import SaleRecorder from '@/components/portal-dark/SaleRecorder'
+import DealCostEditor from '@/components/portal-dark/DealCostEditor'
+import { setDestinationAction } from '../actions'
+
+export const dynamic = 'force-dynamic'
+
+export default async function DealDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const session = await requireMember()
+  const { id } = await params
+  const [deal, member] = await Promise.all([getDeal(id), getMemberByUserId(session.userId)])
+  if (!deal || !member || deal.member_id !== member.id) notFound()
+
+  const [fromPref, defaultToPref] = await Promise.all([getShippingFromPref(), getShippingDefaultToPref()]) // #50 発地・#52 デフォルト陸送先（本部設定）
+  const [costs, preview] = await Promise.all([listDealCosts(id), getSettlementPreview(id, fromPref)])
+  const costTotal = costs.reduce((s, c) => s + (c.amount_yen ?? 0), 0)
+  const editable = deal.status !== 'delivered' && deal.status !== 'sold' // 取引終了後は編集不可
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-5">
+      <Link href="/portal/orders" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white">
+        <ArrowLeft className="h-4 w-4" /> 仕入れオーダーへ戻る
+      </Link>
+
+      <div>
+        <h1 className="flex items-center gap-2 text-xl font-bold text-white">
+          <Package className="h-5 w-5 text-brand-400" />
+          {[deal.maker, deal.car_model, deal.year].filter(Boolean).join(' ') || '車両案件'}
+        </h1>
+        <p className="text-sm text-slate-400">
+          ステータス：{DEAL_STAGE_LABEL[deal.status]} ／ 発注金額 {deal.order_amount_yen ? yen(deal.order_amount_yen) : '—'}
+        </p>
+      </div>
+
+      {/* 進捗ボード（受領・商品化中の操作もここから）。納品完了・売却済みでは非表示 */}
+      {deal.status !== 'delivered' && deal.status !== 'sold' && (
+        <DarkCard>
+          <DarkCardHeader title="進捗" />
+          <DarkCardBody className="space-y-4">
+            <DealBoard deal={deal} />
+            {/* 陸送先（着地県）— 陸送費の自動計算に使用 */}
+            <form action={setDestinationAction} className="flex flex-wrap items-end gap-2 border-t border-carbon-700 pt-3">
+              <input type="hidden" name="deal_id" value={deal.id} />
+              <div>
+                <label className="mb-1 block text-[11px] text-slate-500">陸送先（着地の都道府県）</label>
+                <select name="to_pref" defaultValue={deal.to_pref ?? member.delivery_pref ?? defaultToPref ?? ''} className="rounded-lg border border-carbon-600 bg-carbon-900 px-2.5 py-1.5 text-sm text-slate-100">
+                  <option value="" disabled>選択</option>
+                  {PREFECTURES.map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <button className="rounded-lg border border-carbon-600 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-white/5">設定</button>
+              <span className="pb-1 text-[11px] text-slate-500">設定すると受領時に陸送費が自動計算されます（発地：{fromPref}）。</span>
+            </form>
+
+            {/* #50 設定の結果を即座に可視化（「反応しない/バグ？」を防ぐ）。反映内容と見込み陸送費を明示 */}
+            {deal.to_pref ? (
+              <div className="flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                <div>
+                  <div>陸送先を「<span className="font-semibold text-white">{deal.to_pref}</span>」に設定しました。</div>
+                  <div className="mt-0.5 flex items-center gap-1 text-slate-300">
+                    <Truck className="h-3.5 w-3.5 text-slate-400" />
+                    {preview.shippingType === 'auto'
+                      ? <span>受領（受け取り完了）時に、陸送費 <span className="font-semibold text-white">{yen(preview.shippingAmount)}</span>（{fromPref}→{deal.to_pref}）が自動で計上されます。</span>
+                      : preview.shippingType === 'none'
+                        ? <span>陸送費はすでに費用内訳に登録済みです。</span>
+                        : <span className="text-amber-300">この区間は自動計算の料金が未設定のため、陸送費は本部が個別見積で費用内訳に追加します（金額は下の精算プレビューに反映されます）。</span>}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+                <Truck className="h-3.5 w-3.5 shrink-0" />
+                陸送先が未設定です。着地の都道府県を選んで「設定」を押すと、ここに反映されます。
+              </div>
+            )}
+          </DarkCardBody>
+        </DarkCard>
+      )}
+
+      {/* 費用内訳（動的費目） */}
+      <DarkCard>
+        <DarkCardHeader title="費用内訳" action={<span className="text-xs text-slate-500">合計 {yen(costTotal)}</span>} />
+        <DarkCardBody>
+          <DealCostEditor dealId={deal.id} costs={costs} editable={editable} />
+        </DarkCardBody>
+      </DarkCard>
+
+      {/* 精算プレビュー（受領時に自動確定） */}
+      <DarkCard>
+        <DarkCardHeader title={deal.settled ? '精算結果' : '精算プレビュー'} />
+        <DarkCardBody>
+          <dl className="space-y-1.5 text-sm">
+            <div className="flex justify-between"><dt className="text-slate-400">仕入れ資金（預かり金）</dt><dd className="font-medium text-slate-100">{yen(preview.balance)}</dd></div>
+            <div className="flex justify-between"><dt className="text-slate-400">費用合計（登録済み）</dt><dd className="font-medium text-rose-400">− {yen(preview.costTotal)}</dd></div>
+            {/* 自動計算される陸送費（費目に未登録のとき） */}
+            {preview.shippingType === 'auto' && (
+              <div className="flex justify-between"><dt className="text-slate-400">陸送費（自動計算・{deal.to_pref}）</dt><dd className="font-medium text-rose-400">− {yen(preview.shippingAmount)}</dd></div>
+            )}
+            <div className="mt-2 flex justify-between border-t border-carbon-700 pt-2">
+              <dt className="font-semibold text-white">{deal.settled ? '精算後の預かり残金' : '預かり残金（見込み）'}</dt>
+              <dd className={`text-lg font-bold ${preview.remaining >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {yen(deal.settled ? (deal.remaining_yen ?? 0) : preview.remaining)}
+              </dd>
+            </div>
+          </dl>
+
+          {/* 個別見積が必要な場合の警告 */}
+          {!deal.settled && (preview.shippingType === 'special' || preview.shippingType === 'unset') && preview.blockReason && (
+            <div className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+              {preview.blockReason}
+            </div>
+          )}
+
+          <p className="mt-2 text-[11px] text-slate-500">
+            {deal.settled
+              ? '※ この取引は精算済みです。残金は仕入れ資金の残高に繰り越されています。'
+              : '※ 受領（受け取り完了）時に自動精算し、残金を次回の仕入れ資金に繰り越します。'}
+          </p>
+        </DarkCardBody>
+      </DarkCard>
+
+      {/* Phase 3：販売実績（納品完了後に加盟店が自分の売却を報告 → 粗利益を自動算出） */}
+      {(deal.status === 'delivered' || deal.status === 'sold') && (
+        <DarkCard>
+          <DarkCardHeader title="販売実績" />
+          <DarkCardBody>
+            <SaleRecorder deal={deal} />
+          </DarkCardBody>
+        </DarkCard>
+      )}
+    </div>
+  )
+}

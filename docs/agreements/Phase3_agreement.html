@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>追加実装・Phase 3 完了 合意内容確認書（案）</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    font-family: "Noto Sans CJK JP", "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+    color: #1f2937; font-size: 10.5pt; line-height: 1.7; margin: 0;
+  }
+  h1 { font-size: 16pt; text-align: center; margin: 0 0 4px; letter-spacing: .02em; }
+  .sub { text-align: center; color: #6b7280; font-size: 9pt; margin: 0 0 14px; }
+  .lead { color: #374151; font-size: 10pt; margin: 0 0 16px; }
+  .parties { width: 100%; border-collapse: collapse; margin: 0 0 18px; font-size: 9.5pt; }
+  .parties td { border: 1px solid #d1d5db; padding: 6px 10px; }
+  .parties td:first-child { width: 34%; background: #f3f4f6; font-weight: 600; color: #374151; }
+  h2 {
+    font-size: 11.5pt; margin: 18px 0 8px; padding: 6px 10px;
+    background: #eef2ff; border-left: 4px solid #4f46e5; color: #312e81;
+    break-after: avoid;
+  }
+  p { margin: 0 0 8px; }
+  ul { margin: 4px 0 8px; padding-left: 1.2em; }
+  li { margin: 2px 0; }
+  table.grid { width: 100%; border-collapse: collapse; margin: 6px 0 10px; font-size: 9.5pt; break-inside: avoid; }
+  table.grid th, table.grid td { border: 1px solid #d1d5db; padding: 6px 9px; text-align: left; vertical-align: top; }
+  table.grid th { background: #1f2937; color: #fff; font-weight: 600; }
+  table.grid td.no { width: 34px; text-align: center; color: #6b7280; }
+  .amount { font-weight: 700; color: #b45309; }
+  .note { color: #6b7280; font-size: 8.5pt; }
+  .section { break-inside: avoid; }
+  .sign { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 9.5pt; }
+  .sign th, .sign td { border: 1px solid #9ca3af; padding: 12px 10px; text-align: left; }
+  .sign th { background: #f3f4f6; font-weight: 600; width: 22%; }
+  .sign td.blank { height: 44px; }
+  .footer { margin-top: 22px; border-top: 1px solid #e5e7eb; padding-top: 8px; color: #9ca3af; font-size: 8pt; text-align: center; }
+  .tag { display:inline-block; background:#fef3c7; color:#92400e; border-radius:4px; padding:1px 6px; font-size:8.5pt; font-weight:600; }
+</style>
+</head>
+<body>
+
+  <h1>追加実装・Phase 3 完了 合意内容確認書（案）</h1>
+  <p class="sub">作成日：2026年7月25日</p>
+
+  <table class="parties">
+    <tr><td>発注者（お客様）</td><td>llc.kamui.tradingcompany 御中（PRESIDENT A・Y 様）</td></tr>
+    <tr><td>受注者（開発）</td><td>［御社名／担当：鈴木］</td></tr>
+  </table>
+
+  <p class="lead">本書は、これまでご相談してまいりました追加実装分および Phase 3 の完了に関して、双方の認識を明確にし、今後の相違を防ぐことを目的として、合意内容を整理したものです。</p>
+
+  <div class="section">
+    <h2>1. 追加費用（和解合意）</h2>
+    <ul>
+      <li>現在協議中の追加実装分にかかる追加費用は、<span class="amount">総額 100,000円（税込）を上限</span>とし、本書の合意をもって確定いたします。</li>
+      <li>本合意をもって、<b>Phase 3 の実装およびシステム完成に必要な実装費用を確定</b>し、<b>以後、本書で合意した範囲について、これ以上の追加費用は発生しない</b>ものといたします。</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>2. 追加費用（10万円）の対象範囲</h2>
+    <p>本追加費用の対象は、Phase 3 の進行中に別途ご依頼いただき、すでに実装・動作確認・配布（デプロイ）まで完了している以下の4機能です。</p>
+    <table class="grid">
+      <thead><tr><th class="no">No.</th><th style="width:32%">機能</th><th>概要</th></tr></thead>
+      <tbody>
+        <tr><td class="no">①</td><td>運転資金の出金（引き出し）機能</td><td>出金申請・資金ロック・チケット制・手数料控除・本部承認・振込用CSV出力・預かり金の自動減算</td></tr>
+        <tr><td class="no">②</td><td>消費税対応</td><td>月額管理手数料・枠購入費用への消費税自動計算・本部管理画面での税率変更</td></tr>
+        <tr><td class="no">③</td><td>予算振り分け機能</td><td>両フロー保有加盟店による預かり金の振り分け・各フローとの連動</td></tr>
+        <tr><td class="no">④</td><td>受注待ち（予約）機能</td><td>上限到達時の受注待ち登録・先着順＋手動並替・空き発生時の割当</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>3. Phase 3 として完了とする機能範囲（完了条件）</h2>
+    <p>以下の機能が、要件・仕様どおりに動作している状態をもって、<b>Phase 3 の完了</b>といたします。</p>
+    <p style="margin-bottom:2px"><b>【Phase 3 コア機能（要件定義書 記載分）】</b></p>
+    <ul>
+      <li>車両進捗管理（全自動／半自動）／結果報告書の取込／商品化チェックリスト</li>
+      <li>販売実績管理（売上・原価・粗利益・利益率・月別・加盟店別／全体・平均在庫日数・回転率）</li>
+      <li>月次レポート（月間売上・利益・累計利益・案件数）</li>
+      <li>利益の可視化（カンバン・グラフ）</li>
+    </ul>
+    <p style="margin-bottom:2px"><b>【追加機能（本合意の対象・第2項の4機能）】</b></p>
+    <ul>
+      <li>出金機能／消費税対応／予算振り分け／受注待ち（予約）</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>4. 追加費用の対象外（無償で対応する範囲）</h2>
+    <p>以下は追加費用の対象とせず、受注者の責任において対応いたします。</p>
+    <ul>
+      <li>既に実装済みの機能における<b>不具合の修正</b></li>
+      <li><b>仕様どおりに動作しない部分の修正</b></li>
+      <li>実装済み機能の<b>動作調整</b></li>
+    </ul>
+    <p class="note">上記は、Phase 3 完了に向けた最終確認の中で、責任を持って確認・修正いたします。</p>
+  </div>
+
+  <div class="section">
+    <h2>5. 本合意の範囲外（別途協議・別途お見積り）</h2>
+    <p>本書で合意した仕様の範囲を超える対応は、本合意の対象外とし、実施前に内容・影響範囲・費用をご説明し、ご了承をいただいたうえで進めます。</p>
+    <ul>
+      <li>合意仕様を超える<b>新たな機能追加</b></li>
+      <li><b>業務フローそのものの変更</b>（例：半自動売買の販売活動管理モデルの変更 等）</li>
+      <li><b>Phase 4「AI機能」</b>（市場・相場分析／AI壁打ち／意思決定支援）</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>6. スケジュール・完了目標</h2>
+    <ul>
+      <li>本書の合意後、上記「Phase 3 完了条件」に基づき、実装済み機能の<b>最終動作確認</b>および「仕様どおりに動作しない部分の修正」を実施いたします。</li>
+      <li><b>完了目標：本書合意日より ［ 　　　 ］以内</b>（例：1週間程度）を目安とし、確認完了をもって Phase 3 完了といたします。</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>7. 確認・合意の方法</h2>
+    <ul>
+      <li>本書の内容について双方でご確認のうえ、合意といたします。</li>
+      <li>以後、追加機能・大規模な仕様変更・当初予算範囲を超える可能性がある対応については、<b>必ず実装前に内容・影響範囲・費用をご説明し、ご了承をいただいたうえで進めます。</b></li>
+    </ul>
+  </div>
+
+  <div class="section" style="margin-top:16px">
+    <table class="sign">
+      <tr><th></th><th>会社名・ご担当者</th><th>署名・押印</th><th style="width:18%">日付</th></tr>
+      <tr><th>発注者（お客様）</th><td class="blank">llc.kamui.tradingcompany</td><td class="blank"></td><td class="blank"></td></tr>
+      <tr><th>受注者（開発）</th><td class="blank">［御社名］</td><td class="blank"></td><td class="blank"></td></tr>
+    </table>
+  </div>
+
+  <div class="footer">本書は合意形成のための確認書（案）です。金額・完了目標・会社名等は最終合意に合わせて確定してください。</div>
+
+</body>
+</html>

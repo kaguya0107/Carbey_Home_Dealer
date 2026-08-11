@@ -1,0 +1,47 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>カーベイ FC 加盟店プラットフォーム 要求事項定義書 v1.3（改訂版）</title><style>@page{size:A4;margin:16mm 15mm}html{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{font-family:"Noto Sans CJK JP","Noto Sans JP",sans-serif;color:#1f2937;font-size:10pt;line-height:1.65;margin:0}h1{font-size:17pt;color:#1e3a8a;border-bottom:3px solid #1e3a8a;padding-bottom:6px;margin:0 0 6px}h2{font-size:13pt;color:#111827;background:#eef2ff;border-left:5px solid #1e3a8a;padding:6px 10px;margin:20px 0 8px;break-after:avoid}h3{font-size:11pt;color:#1e3a8a;margin:14px 0 6px;break-after:avoid}p{margin:0 0 8px}ul,ol{margin:4px 0 10px;padding-left:1.4em}li{margin:3px 0}table{width:100%;border-collapse:collapse;margin:8px 0 12px;font-size:9pt;break-inside:avoid}th,td{border:1px solid #cbd5e1;padding:6px 8px;text-align:left;vertical-align:top}th{background:#1f2937;color:#fff;font-weight:600}tr:nth-child(even) td{background:#f8fafc}blockquote{margin:8px 0;padding:8px 12px;background:#eff6ff;border-left:4px solid #3b82f6;color:#1e3a5f;font-size:9.2pt}hr{border:0;border-top:1px solid #e5e7eb;margin:16px 0}code{background:#f1f5f9;padding:1px 4px;border-radius:3px;font-size:9pt}strong{color:#111827}h1+p{color:#6b7280;font-size:9pt}</style></head><body><h1>カーベイ FC 加盟店プラットフォーム 要求事項定義書 v1.3（改訂版）</h1>
+<p>版：Version 1.3（追加機能・仕様変更 反映版） 作成日：2026-07-25 位置づけ：既存の「要求事項定義書 v1.2」および「WEBプラットフォーム制作 要件定義書 v1.0」の<strong>追補・改訂版</strong></p>
+<blockquote>本書は、Phase 3 の進行中に追加でご依頼いただいた機能、および実装過程で確定した仕様変更を、正式なスコープとして反映するための改訂版です。原本（v1.2 / v1.0）に対する差分を中心に記載します。</blockquote>
+<hr>
+<h2>1. 改訂履歴</h2>
+<table><thead><tr><th>版</th><th>日付</th><th>主な内容</th></tr></thead><tbody><tr><td>v1.0 / v1.2</td><td>2025〜2026</td><td>原本（開発方針・4フェーズ構成・MVP機能要件）</td></tr><tr><td><strong>v1.3</strong></td><td>2026-07-25</td><td>追加機能（自動売買 枠・キャパ／月額管理手数料／消費税／予算振り分け／出金 ほか）、設計変更（独自DB・管理手数料モデル）を反映</td></tr></tbody></table>
+<hr>
+<h2>2. 本改訂の目的</h2>
+<ul><li>原本の確定後に追加でご依頼いただいた機能を、<strong>正式なスコープとして明文化</strong>する。</li><li>実装過程で確定した<strong>仕様変更</strong>（Notion連携→独自DB、管理手数料モデル）を反映する。</li><li>各機能の<strong>実装状況</strong>を明確にし、今後の認識相違を防ぐ。</li><li>追加開発分の費用は、別途取り交わす「合意内容確認書」に従う（本書はスコープを定義し、金額は含めない）。</li></ul>
+<hr>
+<h2>3. フェーズ構成と実装状況</h2>
+<table><thead><tr><th>Phase</th><th>内容</th><th>状況</th></tr></thead><tbody><tr><td>Phase 1</td><td>システム基盤（認証・権限・加盟店管理・CRM基本・DB設計）</td><td>実装済</td></tr><tr><td>Phase 2</td><td>加盟店運営基盤（ダッシュボード・オンボーディング・資金調達フロー・仕入れオーダー・チャット・書類）</td><td>実装済</td></tr><tr><td>Phase 3</td><td>自動売買管理（車両進捗・販売実績・月次レポート・利益可視化）</td><td>実装済</td></tr><tr><td><strong>Phase 3 追加</strong></td><td>下記「4. 追加機能」の各項目</td><td>実装済</td></tr><tr><td>Phase 4</td><td>AI機能（市場・相場分析／AI壁打ち／意思決定支援）</td><td>未着手</td></tr></tbody></table>
+<hr>
+<h2>4. 追加機能（原本に記載のない新規スコープ）</h2>
+<p>以下は原本（v1.2 / v1.0）に機能要件としての記載がなく、追加でご依頼いただいた機能です。いずれも実装・動作確認済みです。</p>
+<h3>4-1. 自動売買 枠・キャパ・受注管理</h3>
+<ul><li>加盟店ごとの<strong>保有枠</strong>（エコノミー=1枠／上位=2枠デフォルト、最大10枠）。</li><li><strong>有効枠 = min(保有枠, 自動売買用の預かり金 ÷ 1枠あたり運用資金)</strong>。</li><li><strong>預かり金 100万円未満は受注ロック</strong>。1枠あたり運用資金は既定400万円（加盟店ごと本部設定可）。</li><li><strong>全体200台</strong>の同時運用上限（設定値で拡張可）と使用率の可視化。</li><li><strong>受注待ち（予約）</strong>：上限到達時に登録。先着順＋本部の手動並替、空き発生時の割当。</li></ul>
+<h3>4-2. 枠購入（請求・入金消込 連動）</h3>
+<ul><li>上位プランの3枠目以降を<strong>10万円/枠（税抜）＋消費税</strong>で購入。</li><li>請求発行 → 入金消込の完了で<strong>保有枠を自動付与</strong>（最大10・二重付与防止）。</li></ul>
+<h3>4-3. 月額管理手数料（枠数連動・月次）</h3>
+<ul><li><strong>月額 =（保有枠数 − 1）× 単価（既定10万円・税抜）＋消費税</strong>。</li><li>本部が<strong>月次で実行</strong>（加盟店ごと／全社一括）。<strong>満了月</strong>単位で数え、端数月は課金しない。</li><li><strong>預かり金から相殺</strong>し、不足分は請求（デポジット依頼）＋通知を発行。受注は継続。</li><li>既存加盟店は機能適用日を起算とし、<strong>遡及課金なし</strong>。</li></ul>
+<h3>4-4. 消費税対応</h3>
+<ul><li>月額管理手数料・枠購入費用に<strong>消費税を自動加算</strong>。</li><li><strong>税率は本部管理画面で変更可能</strong>（法改正対応）。税抜／消費税／税込を表示・記録。</li></ul>
+<h3>4-5. 予算振り分け（両フロー保有者）</h3>
+<ul><li>自動売買・半自動の両方を持つ加盟店が、預かり金を<strong>用途ごとに振り分け</strong>。</li><li>各フローの受注可否・発注上限に連動。</li></ul>
+<h3>4-6. 進捗フローの段階制限・仕入れエビデンス</h3>
+<ul><li>自動売買の進捗フローを、現フェーズは<strong>「販売中・精算完了」の2段階</strong>で運用（「仕入れ中」は第二フェーズから拡張・予告表示）。ロジックは全段階を構築済み。</li><li><strong>販売中の車両に、本部が仕入れデータのエビデンスを1点添付</strong>（画像/PDF）。加盟店は閲覧のみ。</li></ul>
+<h3>4-7. 運転資金の出金（引き出し）機能</h3>
+<ul><li>加盟店の<strong>出金申請</strong>、<strong>オーダー中・仕入れ中は申請ロック</strong>、<strong>チケット制</strong>による回数管理。</li><li><strong>出金手数料</strong>を差し引いて振込。本部の<strong>承認・却下</strong>、<strong>振込用CSV出力</strong>、振込完了で<strong>預かり金から自動減算</strong>。</li><li>※チケットの詳細仕様（デフォルト枚数・購入制・不足時の扱い・最低残高）は別途確定のうえ反映。</li></ul>
+<h3>4-8. 車両進捗管理の仕上げ（Phase 3 推奨機能）</h3>
+<ul><li><strong>結果報告書</strong>のドラッグ＆ドロップ取込（加盟店も閲覧可）。</li><li><strong>商品化チェックリスト</strong>（点検・清掃・撮影・掲載準備）。</li><li>販売実績に<strong>平均在庫日数・回転率</strong>を追加。</li></ul>
+<h3>4-9. 本部の一覧ページ整備</h3>
+<ul><li><strong>契約管理</strong>（全加盟店の契約横断一覧）・<strong>請求・入金管理</strong>（全加盟店の請求横断一覧）の専用ページ。</li></ul>
+<hr>
+<h2>5. 設計方針の変更（原本からの変更点）</h2>
+<h3>5-1. データ基盤：Notion CRM連携 → 独自データベース</h3>
+<ul><li>原本（v1.0）は「当面 Notion CRM をマスターとし、将来的に独自DBへ移行」を想定。</li><li><strong>本システムは初めから独自データベース（Supabase / PostgreSQL）で構築</strong>しており、原本が将来推奨としていた独自DB構成を先取りしています（Notion連携は実装しません）。</li><li>これに伴い、加盟店管理・契約・入金・対応状況などは独自DB上で一元管理します。</li></ul>
+<h3>5-2. 管理手数料：成約ごと → 枠数連動の月額</h3>
+<ul><li>原本（v1.0 PLAN-03）は「成約ごとの管理手数料」を想定。</li><li>後続のご指示により、<strong>「枠数に応じた月額（毎月）」</strong>へ設計を変更しています（4-3 参照）。</li></ul>
+<hr>
+<h2>6. 未確定事項・今後の対応</h2>
+<table><thead><tr><th>項目</th><th>内容</th><th>状況</th></tr></thead><tbody><tr><td>Phase 4 AI機能</td><td>市場・相場分析／AI壁打ち／意思決定支援</td><td>未着手（次フェーズ）</td></tr><tr><td>出金チケットの詳細</td><td>デフォルト枚数・購入制・不足時の償却・最低残高</td><td>仕様確定のうえ反映予定</td></tr><tr><td>アイコンの任意変更</td><td>加盟店が任意の画像アイコンに変更</td><td>追加機能（別途）</td></tr><tr><td>拡張オプションの表示・拡張案件プロセス</td><td>左メニューへの将来機能表示、拡張依頼の流れ・費用・期間・準備物</td><td>提案・書面化予定</td></tr><tr><td>重要データのセキュリティ強化</td><td>顧客情報・入出金ログ・証跡の削除制限／監査</td><td>方針提示のうえ段階実装</td></tr><tr><td>加盟店の削除導線</td><td>会員削除の動線整備</td><td>対応予定</td></tr><tr><td>管理者権限の段階検証</td><td>各ロールの仕様確認・テスト</td><td>権限マトリクス提供予定</td></tr></tbody></table>
+<hr>
+<h2>7. 費用・スコープの取り扱い</h2>
+<ul><li>本書「4. 追加機能」および「6. 未確定事項」の対応は、原本の当初お見積り範囲および月額保守（軽微修正）には含まれない<strong>追加開発</strong>にあたります。</li><li>追加開発分の費用・範囲は、別途取り交わす<strong>「合意内容確認書」</strong>に従います（本書はスコープを定義し、金額は含めません）。</li><li>今後、追加機能・大規模な仕様変更・当初予算を超える可能性がある対応は、<strong>実装前に内容・影響範囲・費用を提示し、合意のうえ</strong>進めます。</li></ul>
+<hr>
+<p><em>本書は原本（v1.2 / v1.0）の追補・改訂版です。以後の追加・変更は v1.4 以降として更新します。</em></p></body></html>

@@ -1,0 +1,129 @@
+'use client'
+
+import { useRef, useState } from 'react'
+import { Send, Sparkles, Database, Loader2 } from 'lucide-react'
+
+type Evidence = { function: string; result_count: number; snapshot_date: string; summary?: string }
+type Msg = { role: 'user' | 'assistant'; text: string; evidence?: Evidence[] }
+
+const ERR: Record<string, string> = {
+  ai_not_configured: 'AIが未設定です（APIキー未設定）。',
+  ai_config_error: 'AIの設定に問題があるようです（APIキーの確認が必要です）。',
+  ai_error: 'AIの応答でエラーが発生しました。もう一度お試しください。',
+  forbidden: 'この会話にはアクセスできません。',
+}
+
+export default function AdminAiChatPanel() {
+  const [messages, setMessages] = useState<Msg[]>([])
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [conversationId, setConversationId] = useState<string | null>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+
+  const scrollDown = () => requestAnimationFrame(() => {
+    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
+  })
+
+  async function send() {
+    const text = input.trim()
+    if (!text || loading) return
+    setInput('')
+    setMessages((m) => [...m, { role: 'user', text }])
+    setLoading(true)
+    scrollDown()
+    try {
+      const res = await fetch('/api/admin/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId, message: text }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setMessages((m) => [...m, { role: 'assistant', text: ERR[data.error] ?? 'エラーが発生しました。' }])
+      } else {
+        if (data.conversationId) setConversationId(data.conversationId)
+        setMessages((m) => [...m, { role: 'assistant', text: data.text, evidence: data.evidence }])
+      }
+    } catch {
+      setMessages((m) => [...m, { role: 'assistant', text: '通信エラーが発生しました。' }])
+    } finally {
+      setLoading(false)
+      scrollDown()
+    }
+  }
+
+  return (
+    <div className="flex h-[calc(100vh-13rem)] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-2.5">
+        <Sparkles className="h-4 w-4 text-brand-500" />
+        <span className="text-sm font-medium text-slate-800">本部AI（分析・壁打ち・カスタマー対応）</span>
+      </div>
+
+      <div ref={listRef} className="flex-1 space-y-4 overflow-y-auto bg-slate-50 px-4 py-4">
+        {messages.length === 0 && (
+          <div className="mt-8 text-center text-sm text-slate-400">
+            <Sparkles className="mx-auto mb-2 h-6 w-6 text-brand-400/70" />
+            市場分析・カスタマー対応の下書き・経営の壁打ちに使えます。<br />
+            例：「今の中古車市場の概況は？」「値下げ相談への回答案を作って」
+          </div>
+        )}
+        {messages.map((m, i) => (
+          <div key={i} className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
+            <div
+              className={
+                m.role === 'user'
+                  ? 'max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-brand-500 px-4 py-2.5 text-sm text-white'
+                  : 'max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-sm border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700'
+              }
+            >
+              {m.text}
+              {m.evidence && m.evidence.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5 border-t border-slate-100 pt-2">
+                  {m.evidence.map((e, j) => (
+                    <span key={j} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">
+                      <Database className="h-3 w-3" /> {e.result_count}件 · {e.snapshot_date}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+        {loading && (
+          <div className="flex justify-start">
+            <div className="flex items-center gap-2 rounded-2xl rounded-bl-sm border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-500">
+              <Loader2 className="h-4 w-4 animate-spin text-brand-500" /> 分析中…
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="border-t border-slate-200 p-3">
+        <div className="flex items-end gap-2">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                send()
+              }
+            }}
+            rows={1}
+            placeholder="市場分析・カスタマー対応・経営について質問…（Shift+Enter で改行）"
+            disabled={loading}
+            className="max-h-32 flex-1 resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-400/20 disabled:opacity-50"
+          />
+          <button
+            onClick={send}
+            disabled={loading || !input.trim()}
+            className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-brand-500 text-white transition hover:bg-brand-600 disabled:opacity-40"
+            aria-label="送信"
+          >
+            <Send className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}

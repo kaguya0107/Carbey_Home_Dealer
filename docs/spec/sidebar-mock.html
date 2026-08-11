@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>拡張オプション サイドバー モック</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family:"Noto Sans CJK JP","Noto Sans JP",sans-serif;
+    background:#06070a; padding:28px; display:inline-block;
+  }
+  .frame { display:flex; gap:22px; align-items:flex-start; }
+  aside {
+    width:264px; background:#111317; border:1px solid #2b2f38; border-radius:16px;
+    overflow:hidden;
+  }
+  .brand { display:flex; align-items:center; gap:10px; padding:18px 20px; }
+  .logo { width:36px; height:36px; border-radius:11px; background:linear-gradient(135deg,#f5362b,#b91c1c);
+    display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:16px; }
+  .brand .t1 { font-size:15px; font-weight:800; color:#fff; line-height:1.15; }
+  .brand .t1 span { color:#f5362b; }
+  .brand .t2 { font-size:10px; color:#64748b; }
+  nav { padding:6px 12px; }
+  .item {
+    display:flex; align-items:center; justify-content:space-between;
+    border-radius:12px; padding:9px 12px; font-size:13px; font-weight:500; margin:2px 0;
+  }
+  .item .l { display:flex; align-items:center; gap:12px; }
+  .ic { width:18px; height:18px; }
+  .normal { color:#cbd5e1; }
+  .normal .ic { color:#94a3b8; }
+  .active { background:#f5362b; color:#fff; box-shadow:0 0 20px -4px rgba(245,54,43,.6); }
+  .active .ic { color:#fff; }
+  .soon { color:#64748b; }
+  .soon .ic { color:#4b5563; }
+  .badge-soon { background:#2b2f38; color:#64748b; font-size:9px; padding:2px 6px; border-radius:4px; font-weight:400; }
+  .badge-num { background:#f5362b; color:#fff; font-size:10px; font-weight:700; height:20px; min-width:20px;
+    display:flex; align-items:center; justify-content:center; border-radius:999px; padding:0 6px; }
+  /* 拡張オプション */
+  .opt { color:#a8b3c4; }
+  .opt .ic { color:#8a94a6; }
+  .badge-dev { background:rgba(245,158,11,.16); color:#fbbf24; font-size:9px; font-weight:700;
+    padding:2px 7px; border-radius:5px; border:1px solid rgba(245,158,11,.3); white-space:nowrap; flex:0 0 auto; }
+  .badge-plan { background:rgba(56,189,248,.14); color:#7dd3fc; font-size:9px; font-weight:700;
+    padding:2px 7px; border-radius:5px; border:1px solid rgba(56,189,248,.3); white-space:nowrap; flex:0 0 auto; }
+  .item .l { min-width:0; }
+  .sec {
+    display:flex; align-items:center; gap:8px; margin:14px 6px 4px; color:#64748b;
+    font-size:10px; font-weight:700; letter-spacing:.06em;
+  }
+  .sec::after { content:""; flex:1; height:1px; background:#2b2f38; }
+  .sec .dot { width:5px; height:5px; border-radius:999px; background:#f59e0b; }
+  .plan { margin:12px; border:1px solid #2b2f38; background:rgba(17,19,23,.6); border-radius:12px; padding:14px; }
+  .plan .k { font-size:11px; color:#64748b; }
+  .plan .v { font-size:18px; font-weight:800; color:#fff; margin-top:2px; }
+  .chip { display:inline-flex; align-items:center; gap:5px; background:rgba(245,54,43,.15); color:#ff6a5f;
+    font-size:11px; font-weight:700; padding:2px 8px; border-radius:6px; margin-top:6px; }
+  .chip .d { width:6px; height:6px; border-radius:999px; background:#f5362b; }
+  .plan .term { font-size:11px; color:#64748b; margin-top:10px; }
+  .plan a { display:block; text-align:center; margin-top:12px; border:1px solid #3b404b; border-radius:9px;
+    padding:6px; font-size:12px; color:#cbd5e1; font-weight:500; text-decoration:none; }
+  /* 注釈カード */
+  .note { width:340px; color:#cbd5e1; }
+  .note h2 { color:#fff; font-size:16px; margin-bottom:4px; }
+  .note .sub { color:#64748b; font-size:11px; margin-bottom:16px; }
+  .legend { display:flex; flex-direction:column; gap:12px; }
+  .lg { display:flex; gap:11px; align-items:flex-start; }
+  .lg .sw { flex:0 0 auto; margin-top:2px; }
+  .pill { display:inline-block; font-size:10px; font-weight:700; padding:3px 9px; border-radius:6px; }
+  .pill.now { background:#f5362b; color:#fff; }
+  .pill.soon { background:#2b2f38; color:#94a3b8; }
+  .pill.dev { background:rgba(245,158,11,.16); color:#fbbf24; border:1px solid rgba(245,158,11,.3); }
+  .pill.plan { background:rgba(56,189,248,.14); color:#7dd3fc; border:1px solid rgba(56,189,248,.3); }
+  .lg .tt { font-size:12.5px; font-weight:700; color:#e2e8f0; }
+  .lg .dd { font-size:11.5px; color:#8a94a6; line-height:1.5; margin-top:2px; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <aside>
+    <div class="brand">
+      <div class="logo">C</div>
+      <div>
+        <div class="t1">Carbey <span>Home Dealer</span></div>
+        <div class="t2">加盟店プラットフォーム</div>
+      </div>
+    </div>
+
+    <nav>
+      <!-- 現行メニュー -->
+      <div class="item normal"><span class="l"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>オンボーディング</span></div>
+      <div class="item active"><span class="l"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>ダッシュボード</span></div>
+      <div class="item soon"><span class="l"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>車両管理</span><span class="badge-soon">準備中</span></div>
+      <div class="item normal"><span class="l"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>オーダー管理</span></div>
+      <div class="item normal"><span class="l"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>自動売買</span></div>
+      <div class="item normal"><span class="l"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></svg>トレーニング</span></div>
+      <div class="item normal"><span class="l"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>出金申請</span></div>
+      <div class="item normal"><span class="l"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>チャット</span></div>
+      <div class="item normal"><span class="l"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>お知らせ</span><span class="badge-num">3</span></div>
+
+      <!-- 拡張オプション（今後の拡張予定） -->
+      <div class="sec"><span class="dot"></span>拡張オプション</div>
+      <div class="item opt"><span class="l"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>プラン変更</span><span class="badge-plan">提供予定</span></div>
+      <div class="item opt"><span class="l"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10.189V14"/><path d="M12 2v3"/><path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"/><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-8.188-3.639a2 2 0 0 0-1.624 0L3 14a11.6 11.6 0 0 0 2.81 7.76"/><path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1s1.2 1 2.5 1c2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg>フルオート輸出</span><span class="badge-dev">開発中</span></div>
+      <div class="item opt"><span class="l"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/></svg>代理店申請</span><span class="badge-dev">開発中</span></div>
+      <div class="item opt"><span class="l"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 2 4 4-4 4"/><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"/><path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"/><path d="m18 14 4 4-4 4"/><path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22"/></svg>マッチングオーダー</span><span class="badge-dev">開発中</span></div>
+    </nav>
+
+    <div class="plan">
+      <div class="k">ご利用プラン</div>
+      <div class="v">エコノミー</div>
+      <span class="chip"><span class="d"></span>稼働中</span>
+      <div class="term">契約期間：2026-04-01〜</div>
+      <a href="#">プラン詳細</a>
+    </div>
+  </aside>
+
+  <div class="note">
+    <h2>拡張オプションの表示</h2>
+    <div class="sub">左メニュー最下部に「拡張オプション」区画を新設し、今後の拡張予定をあらかじめ可視化します。状態を色で区別します。</div>
+    <div class="legend">
+      <div class="lg"><span class="sw"><span class="pill now">現行</span></span><div><div class="tt">赤＝ご利用中の機能</div><div class="dd">現在お使いいただいているメニュー。クリックで各画面へ遷移します。</div></div></div>
+      <div class="lg"><span class="sw"><span class="pill soon">準備中</span></span><div><div class="tt">灰＝今後の標準アップデート</div><div class="dd">標準機能として順次提供予定。追加費用なしで解放されます（例：車両管理）。</div></div></div>
+      <div class="lg"><span class="sw"><span class="pill dev">開発中</span></span><div><div class="tt">橙＝現在開発中の拡張機能</div><div class="dd">フルオート輸出・代理店申請・マッチングオーダー。開発完了後、順次ご利用いただけます。</div></div></div>
+      <div class="lg"><span class="sw"><span class="pill plan">提供予定</span></span><div><div class="tt">青＝提供予定のメニュー</div><div class="dd">プラン変更など、今後追加を予定している機能です。</div></div></div>
+    </div>
+    <div style="margin-top:18px;padding:12px 14px;background:#0f1520;border:1px solid #1e293b;border-radius:10px;">
+      <div style="font-size:11px;color:#7dd3fc;font-weight:700;margin-bottom:4px;">今回のご指定（3〜5件推奨）</div>
+      <div style="font-size:11.5px;color:#94a3b8;line-height:1.6;">プラン変更／フルオート輸出※開発中／代理店申請※開発中／マッチングオーダー※開発中<br>の4件を表示しています。表示名・並び順・追加は随時調整できます。</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
