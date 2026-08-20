@@ -272,6 +272,28 @@ export async function listMgmtFeeRuns(memberId: string, limit = 24): Promise<Mem
   return (data ?? []) as unknown as MemberMgmtFeeRunRow[]
 }
 
+export type MgmtFeeRunWithMember = MemberMgmtFeeRunRow & { memberName: string }
+
+/** 全会員の月次引き落とし実行履歴（新しい順・会員名付き）。⑥ 自動引き落とし履歴の可視化。 */
+export async function listAllMgmtFeeRuns(limit = 100): Promise<MgmtFeeRunWithMember[]> {
+  const supabase = createServiceRoleClient()
+  const { data: runs } = await supabase
+    .from('member_mgmt_fee_runs')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  const rows = (runs ?? []) as unknown as MemberMgmtFeeRunRow[]
+  const ids = [...new Set(rows.map((r) => r.member_id))]
+  const nameById = new Map<string, string>()
+  if (ids.length) {
+    const { data: members } = await supabase.from('members').select('id, member_name, company_name').in('id', ids)
+    for (const m of (members ?? []) as { id: string; member_name: string | null; company_name: string | null }[]) {
+      nameById.set(m.id, m.company_name ?? m.member_name ?? '—')
+    }
+  }
+  return rows.map((r) => ({ ...r, memberName: nameById.get(r.member_id) ?? '—' }))
+}
+
 /** ユーザーIDから自分の月額管理手数料プレビューを取得（加盟店表示）。 */
 export async function getOwnMgmtFeePreview(userId: string): Promise<MgmtFeePreview | null> {
   const supabase = createServiceRoleClient()

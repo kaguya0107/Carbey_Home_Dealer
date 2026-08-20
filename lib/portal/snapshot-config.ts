@@ -195,3 +195,26 @@ export async function deleteTemplate(id: string): Promise<void> {
   const { error } = await client.from(TABLE).delete().eq('id', id)
   if (error) throw new Error(`テンプレ削除に失敗しました: ${error.message}`)
 }
+
+/**
+ * ⑦ 失敗runの対象テンプレを「再取得予約」する。
+ * ポータルからVPSを直接起動できないため、該当テンプレの3日クールダウン（scheduled_last_run_at）を
+ * 解除し、次の取得時刻の巡回で自動的に再収集させる。有効化されているテンプレのみ再実行される。
+ */
+export async function requeueTemplate(templateId: string): Promise<{ scheduledTimeJst: string | null; enabled: boolean }> {
+  const read = createPublicReadClient()
+  const { data } = await read
+    .from(TABLE)
+    .select('scheduled_time_jst, scheduled_enabled')
+    .eq('id', templateId)
+    .maybeSingle<{ scheduled_time_jst: string | null; scheduled_enabled: boolean }>()
+  if (!data) throw new Error('対象のテンプレが見つかりません（削除された可能性があります）。')
+
+  const client = createPublicWriteClient()
+  const { error } = await client
+    .from(TABLE)
+    .update({ scheduled_last_run_at: null, updated_at: new Date().toISOString() } as never)
+    .eq('id', templateId)
+  if (error) throw new Error(`再取得の予約に失敗しました: ${error.message}`)
+  return { scheduledTimeJst: data.scheduled_time_jst, enabled: Boolean(data.scheduled_enabled) }
+}

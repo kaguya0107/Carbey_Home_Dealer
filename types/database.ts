@@ -146,6 +146,8 @@ export type MemberRow = {
   ai_image_enabled: boolean | null
   ai_docgen_enabled: boolean | null
   ai_deep_enabled: boolean | null
+  /** 加盟者がAI相談の回答方針として自由入力する指示（migration 065・⑫/⑭） */
+  ai_custom_instructions: string | null
   admin_notes: string | null
   /** ソフト削除日時（NULL=有効・migration 048） */
   deleted_at: string | null
@@ -309,6 +311,7 @@ export type AnnouncementRow = {
   author_id: string | null
   created_at: string
   updated_at: string
+  archived_at: string | null
 }
 
 export type ChatConversationRow = {

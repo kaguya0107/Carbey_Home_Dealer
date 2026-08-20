@@ -88,6 +88,31 @@ export const getEffectiveAiConfig = cache(async (memberId: string | null): Promi
 })
 
 // ---------------------------------------------------------------------
+// ⑫ 加盟者のAIプロンプト（自由記述の指示）
+// ---------------------------------------------------------------------
+
+/** 加盟者が設定したAIへの指示（未設定なら空文字）。 */
+export async function getMemberAiInstructions(memberId: string): Promise<string> {
+  const supabase = createServiceRoleClient()
+  const { data } = await supabase
+    .from('members')
+    .select('ai_custom_instructions')
+    .eq('id', memberId)
+    .maybeSingle<{ ai_custom_instructions: string | null }>()
+  return data?.ai_custom_instructions ?? ''
+}
+
+/** 加盟者のAIへの指示を保存（空なら null）。 */
+export async function setMemberAiInstructions(memberId: string, text: string): Promise<void> {
+  const supabase = createServiceRoleClient()
+  const { error } = await supabase
+    .from('members')
+    .update({ ai_custom_instructions: text.trim() || null } as never)
+    .eq('id', memberId)
+  if (error) throw new Error(error.message)
+}
+
+// ---------------------------------------------------------------------
 // 月・繰越
 // ---------------------------------------------------------------------
 

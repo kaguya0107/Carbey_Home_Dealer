@@ -5,6 +5,7 @@ import { recordUsage } from '@/lib/portal/ai-usage'
 import { createConversation, getConversation, listMessages, insertMessage } from '@/lib/portal/ai-conversations'
 import { runChat } from '@/lib/ai/orchestrator'
 import { buildHqSystemPrompt } from '@/lib/ai/client'
+import { getAiInstruction, HQ_AI_INSTRUCTIONS_KEY } from '@/lib/portal/editable-notes'
 import { MEMBER_MARKET_TOOLS } from '@/lib/ai/tools'
 import { modelForTier } from '@/lib/ai/models'
 import { getProvider, DEFAULT_PROVIDER } from '@/lib/ai/providers/registry'
@@ -60,12 +61,14 @@ export async function POST(request: NextRequest) {
 
   await insertMessage({ conversationId: convId, role: 'user', content: { text: message } })
 
+  const hqInstructions = await getAiInstruction(HQ_AI_INSTRUCTIONS_KEY)
+
   let result
   try {
     result = await runChat({
       providerId,
       model,
-      systemPrompt: buildHqSystemPrompt(),
+      systemPrompt: buildHqSystemPrompt(new Date(), hqInstructions),
       tools: MEMBER_MARKET_TOOLS,
       history,
     })

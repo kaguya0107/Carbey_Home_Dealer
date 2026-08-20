@@ -4274,6 +4274,22 @@ insert into portal.editable_notes(key, title, body) values
 on conflict (key) do nothing;
 
 
+-- #####################################################################
+-- ## お知らせのアーカイブ（ソフト削除・内容保全）— migration 063
+-- #####################################################################
+alter table portal.announcements
+  add column if not exists archived_at timestamptz;
+comment on column portal.announcements.archived_at is 'アーカイブ日時（ソフト削除）。内容保全のため物理削除せずここを立てる。null=有効。';
+
+
+-- #####################################################################
+-- ## AIプロンプト入力：加盟者ごとの「AIへの指示」— migration 065
+-- #####################################################################
+alter table portal.members
+  add column if not exists ai_custom_instructions text;
+comment on column portal.members.ai_custom_instructions is '加盟者がAI相談の回答方針として自由入力する指示（プロンプト）。system prompt 末尾へ追記。null/空=未設定。';
+
+
 -- ## 仕上げ: PostgREST スキーマキャッシュを再読込
 -- #####################################################################
 notify pgrst, 'reload schema';

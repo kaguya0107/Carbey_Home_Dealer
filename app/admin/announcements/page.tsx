@@ -1,9 +1,9 @@
-import { Megaphone, CheckCircle2, Trash2, AlertTriangle } from 'lucide-react'
+import { Megaphone, CheckCircle2, Archive, ArchiveRestore, AlertTriangle } from 'lucide-react'
 import { requireStaff } from '@/lib/auth/session'
-import { listAnnouncements } from '@/lib/portal/announcements'
+import { listAnnouncements, listArchivedAnnouncements } from '@/lib/portal/announcements'
 import { Card, CardHeader, CardBody } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
-import { createAnnouncementAction, deleteAnnouncementAction } from './actions'
+import { createAnnouncementAction, archiveAnnouncementAction, unarchiveAnnouncementAction } from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,6 +18,7 @@ export default async function AdminAnnouncementsPage({
 }) {
   await requireStaff()
   const items = await listAnnouncements()
+  const archived = await listArchivedAnnouncements()
   const sp = await searchParams
 
   return (
@@ -80,10 +81,10 @@ export default async function AdminAnnouncementsPage({
                   <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{a.body}</p>
                   <div className="mt-1 text-xs text-slate-400">{new Date(a.created_at).toLocaleString('ja-JP')}</div>
                 </div>
-                <form action={deleteAnnouncementAction}>
+                <form action={archiveAnnouncementAction}>
                   <input type="hidden" name="id" value={a.id} />
-                  <button className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600" title="削除" aria-label="削除">
-                    <Trash2 className="h-4 w-4" />
+                  <button className="rounded-md p-1.5 text-slate-400 hover:bg-amber-50 hover:text-amber-600" title="アーカイブ（内容は保全されます）" aria-label="アーカイブ">
+                    <Archive className="h-4 w-4" />
                   </button>
                 </form>
               </li>
@@ -92,9 +93,47 @@ export default async function AdminAnnouncementsPage({
         </CardBody>
       </Card>
 
+      {/* ⑤ アーカイブ済み（内容保全）— 物理削除せず保全し、折りたたみで可視化 */}
+      {archived.length > 0 && (
+        <Card>
+          <CardBody className="p-0">
+            <details>
+              <summary className="flex cursor-pointer items-center gap-2 px-5 py-4 marker:text-slate-400">
+                <Archive className="h-4 w-4 text-slate-400" />
+                <span className="text-sm font-semibold text-slate-800">アーカイブ済みお知らせ（内容保全）</span>
+                <span className="text-xs text-slate-400">{archived.length} 件</span>
+              </summary>
+              <ul className="divide-y divide-slate-100 border-t border-slate-100">
+                {archived.map((a) => (
+                  <li key={a.id} className="flex items-start gap-3 px-5 py-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        {a.level === 'important' && <Badge tone="red">重要</Badge>}
+                        <span className="font-medium text-slate-700">{a.title}</span>
+                      </div>
+                      <p className="mt-1 whitespace-pre-wrap text-sm text-slate-500">{a.body}</p>
+                      <div className="mt-1 text-xs text-slate-400">
+                        配信 {new Date(a.created_at).toLocaleString('ja-JP')}
+                        {a.archived_at && <> ／ アーカイブ {new Date(a.archived_at).toLocaleString('ja-JP')}</>}
+                      </div>
+                    </div>
+                    <form action={unarchiveAnnouncementAction}>
+                      <input type="hidden" name="id" value={a.id} />
+                      <button className="rounded-md p-1.5 text-slate-400 hover:bg-brand-50 hover:text-brand-600" title="有効に戻す" aria-label="有効に戻す">
+                        <ArchiveRestore className="h-4 w-4" />
+                      </button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          </CardBody>
+        </Card>
+      )}
+
       <p className="flex items-center gap-1.5 text-xs text-slate-400">
         <AlertTriangle className="h-3.5 w-3.5" />
-        配信済みのお知らせを削除しても、既に届いた通知は取り消されません。
+        お知らせは物理削除されず、アーカイブとして内容が保全されます（既に届いた通知は取り消されません）。
       </p>
     </div>
   )

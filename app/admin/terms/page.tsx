@@ -104,28 +104,38 @@ export default async function AdminTermsPage({
 
       {/* 一覧 */}
       <div>
-        <h2 className="mb-2 text-sm font-semibold text-slate-900">規約の履歴</h2>
+        <h2 className="mb-2 text-sm font-semibold text-slate-900">規約の履歴（旧バージョンも保全）</h2>
+        <p className="mb-2 text-xs text-slate-400">各版をクリックすると本文を展開できます（普段は折りたたみ）。過去の規約も証跡として保全されます。</p>
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
           <ul className="divide-y divide-slate-100">
             {items.length === 0 && <li className="px-5 py-8 text-center text-sm text-slate-400">まだ規約がありません。</li>}
             {items.map((a) => (
-              <li key={a.id} className="flex items-center gap-3 px-5 py-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-slate-900">{a.title}</span>
-                    <span className="text-xs text-slate-400">v{a.version}</span>
-                    {a.published && <span className="rounded bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold text-green-700">公開中</span>}
+              <li key={a.id} className="px-5 py-3">
+                <details>
+                  <summary className="cursor-pointer marker:text-slate-400">
+                    <span className="ml-1 inline-flex flex-wrap items-center gap-2 align-middle">
+                      <span className="text-sm font-medium text-slate-900">{a.title}</span>
+                      <span className="text-xs text-slate-400">v{a.version}</span>
+                      {a.published
+                        ? <span className="rounded bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold text-green-700">公開中</span>
+                        : <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">過去版</span>}
+                      <span className="text-xs text-slate-400">{new Date(a.updated_at).toLocaleString('ja-JP')}</span>
+                    </span>
+                  </summary>
+                  <div className="mt-2 space-y-2 pl-4">
+                    <div className="max-h-96 overflow-y-auto whitespace-pre-wrap rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm leading-relaxed text-slate-700">{a.body}</div>
+                    <div className="flex items-center gap-2">
+                      <a href={`/admin/terms?view=${a.id}`} className="rounded-md px-2.5 py-1 text-xs font-medium text-slate-600 hover:underline">全体表示（別添含む）</a>
+                      <a href={`/admin/terms?edit=${a.id}`} className="rounded-md px-2.5 py-1 text-xs font-medium text-info-600 hover:underline">編集</a>
+                      {!a.published && (
+                        <form action={deleteAgreementAction}>
+                          <input type="hidden" name="id" value={a.id} />
+                          <button className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600" title="削除"><Trash2 className="h-4 w-4" /></button>
+                        </form>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-xs text-slate-400">{new Date(a.updated_at).toLocaleString('ja-JP')}</div>
-                </div>
-                <a href={`/admin/terms?view=${a.id}`} className="rounded-md px-2.5 py-1 text-xs font-medium text-slate-600 hover:underline">表示</a>
-                <a href={`/admin/terms?edit=${a.id}`} className="rounded-md px-2.5 py-1 text-xs font-medium text-info-600 hover:underline">編集</a>
-                {!a.published && (
-                  <form action={deleteAgreementAction}>
-                    <input type="hidden" name="id" value={a.id} />
-                    <button className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600" title="削除"><Trash2 className="h-4 w-4" /></button>
-                  </form>
-                )}
+                </details>
               </li>
             ))}
           </ul>

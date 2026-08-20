@@ -17,6 +17,10 @@ export type ScopeFilter = {
   yearMax?: number
   priceMinMan?: number // 万円
   priceMaxMan?: number // 万円
+  keyword?: string // ⑧ キーワード（車種名・グレード・メーカー・色を横断部分一致）
+  // ③ 期間指定（JSTの日付 YYYY-MM-DD）。指定時は30日ローリングではなく累積データを対象にする。
+  dateFrom?: string
+  dateTo?: string
 }
 
 export type PriceStats = {
@@ -39,6 +43,7 @@ export type ScopeResult = {
   priceHistogram: { label: string; from: number; to: number; count: number }[] // 万円バケット
   topRegions: { region: string; count: number }[]
   topCars: { car: string; count: number }[]
+  periodBased: boolean // true=期間指定・累積データ（重複除去済み）／false=直近30日ローリング
 }
 
 function applyFilter<T>(q: T, f: ScopeFilter): T {
@@ -49,6 +54,7 @@ function applyFilter<T>(q: T, f: ScopeFilter): T {
     gte: (c: string, v: number) => typeof query
     lte: (c: string, v: number) => typeof query
     not: (c: string, op: string, v: null) => typeof query
+    or: (v: string) => typeof query
   }
   if (f.carName?.trim()) query = query.ilike('car_name', `%${f.carName.trim()}%`)
   if (f.prefecture?.trim()) query = query.eq('region_prefecture', f.prefecture.trim())
@@ -56,6 +62,14 @@ function applyFilter<T>(q: T, f: ScopeFilter): T {
   if (f.yearMax != null) query = query.lte('model_year', f.yearMax)
   if (f.priceMinMan != null) query = query.gte('price_body_yen', f.priceMinMan * 10_000)
   if (f.priceMaxMan != null) query = query.lte('price_body_yen', f.priceMaxMan * 10_000)
+  // ⑧ キーワード＝車種名・グレード・メーカー・色を横断して部分一致（OR）。
+  //   .or() を壊す文字（, ( ) *）は除去してから組み立てる。
+  const kw = f.keyword?.trim().replace(/[,()*]/g, ' ').trim()
+  if (kw) {
+    query = query.or(
+      `car_name.ilike.*${kw}*,grade.ilike.*${kw}*,maker.ilike.*${kw}*,color.ilike.*${kw}*`,
+    )
+  }
   return query as unknown as T
 }
 
@@ -71,9 +85,73 @@ function percentile(sorted: number[], p: number): number {
 
 const yen2man = (y: number) => Math.round(y / 10_000)
 
-/** 1スコープの範囲集計。 */
+type SampleRow = {
+  price_body_yen: number | null
+  price_total_yen: number | null
+  model_year: number | null
+  mileage_km: number | null
+  region_prefecture: string | null
+  car_name: string | null
+}
+
+const DAY_MS = 86_400_000
+
+/**
+ * ③ 期間指定の累積データ集計。cs_market_observations は巨大（約150万件）で、広い期間を1クエリで
+ * 走査すると statement timeout になるため、新しい側から一定日数ずつ「区切って」取得する。
+ * 各 cs_stock_id は最初に出会った（＝最新の）1件だけ採用して重複除去する（期間内最新ルール）。
+ */
+async function fetchPeriodDeduped(filter: ScopeFilter): Promise<SampleRow[]> {
+  const client = createPublicReadClient()
+  const CHUNK_MS = 7 * DAY_MS // 1区切り=7日（狭くして timeout を避ける）
+  const MAX_CHUNKS = 8 // 走査上限（暴走防止・最新側から最大約56日）
+  const toMs = filter.dateTo ? Date.parse(`${filter.dateTo}T23:59:59.999+09:00`) : Date.now()
+  const fromMs = filter.dateFrom
+    ? Date.parse(`${filter.dateFrom}T00:00:00+09:00`)
+    : toMs - MAX_CHUNKS * CHUNK_MS
+
+  const seen = new Set<string>()
+  const out: SampleRow[] = []
+  let cursorTo = toMs
+  for (let i = 0; i < MAX_CHUNKS && out.length < SAMPLE_LIMIT && cursorTo > fromMs; i++) {
+    const cursorFrom = Math.max(fromMs, cursorTo - CHUNK_MS)
+    let q = client
+      .from('cs_market_observations')
+      .select('cs_stock_id, price_body_yen, price_total_yen, model_year, mileage_km, region_prefecture, car_name')
+      .not('price_body_yen', 'is', null)
+    q = applyFilter(q, filter)
+    q = (q as unknown as {
+      gte: (c: string, v: string) => typeof q
+      lte: (c: string, v: string) => typeof q
+    }).gte('fetched_at', new Date(cursorFrom).toISOString()).lte('fetched_at', new Date(cursorTo).toISOString()) as typeof q
+    const { data, error } = await q.order('fetched_at', { ascending: false }).limit(SAMPLE_LIMIT)
+    if (error) {
+      // 巨大テーブルのフィルタ走査がタイムアウト。中途半端な件数を返さず、明確に失敗を通知する。
+      throw new Error('指定期間の集計がタイムアウトしました。期間を短く（目安2週間以内）するか、車種・地域で絞ってお試しください。（広い期間の高速集計には市場データへのインデックス追加が必要です）')
+    }
+    for (const r of (data ?? []) as Array<SampleRow & { cs_stock_id: string | null }>) {
+      const id = r.cs_stock_id
+      if (id && !seen.has(id)) { seen.add(id); out.push(r) }
+    }
+    cursorTo = cursorFrom
+  }
+  return out
+}
+
+/**
+ * 1スコープの範囲集計。
+ * ・期間指定なし：直近30日ローリング（recent_market_observations・件数はhead正確）。
+ * ・期間指定あり（③）：累積データ（cs_market_observations）を対象。期間内は各 cs_stock_id の
+ *   最新1件へ重複除去して集計（同一車両の期間内重複を排除）。
+ */
 export async function analyzeScope(filter: ScopeFilter): Promise<ScopeResult> {
   const client = createPublicReadClient()
+  const usePeriod = !!(filter.dateFrom || filter.dateTo)
+
+  if (usePeriod) {
+    const deduped = await fetchPeriodDeduped(filter)
+    return buildResult(deduped, deduped.length, true)
+  }
 
   // 正確な件数（価格ありのみ）
   let countQ = client.from(OBS).select('*', { count: 'exact', head: true }).not('price_body_yen', 'is', null)
@@ -90,7 +168,11 @@ export async function analyzeScope(filter: ScopeFilter): Promise<ScopeResult> {
   // fetched_at 降順だと直近スクレイプの都道府県にサンプルが偏るため使わない。
   const { data: rows } = await sampleQ.order('cs_stock_id', { ascending: true }).limit(SAMPLE_LIMIT)
 
-  const sample = rows ?? []
+  return buildResult((rows ?? []) as unknown as SampleRow[], count ?? (rows?.length ?? 0), false)
+}
+
+/** サンプル配列＋件数から集計結果を組み立てる（30日ローリング／期間指定 共通）。 */
+function buildResult(sample: SampleRow[], count: number, periodBased: boolean): ScopeResult {
   const sampleSize = sample.length
 
   const prices = sample
@@ -147,7 +229,7 @@ export async function analyzeScope(filter: ScopeFilter): Promise<ScopeResult> {
   }
 
   return {
-    count: count ?? sampleSize,
+    count,
     sampleSize,
     price,
     yearMedian: years.length ? Math.round(percentile(years, 0.5)) : null,
@@ -157,5 +239,6 @@ export async function analyzeScope(filter: ScopeFilter): Promise<ScopeResult> {
     priceHistogram,
     topRegions: tally('region_prefecture').map(([region, c]) => ({ region, count: c })),
     topCars: tally('car_name').map(([car, c]) => ({ car, count: c })),
+    periodBased,
   }
 }

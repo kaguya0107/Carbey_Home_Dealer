@@ -33,6 +33,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
   if (can('orders')) primary.push({ href: '/admin/orders', label: '半自動売買オーダー管理', icon: 'order' })
   if (can('reports')) primary.push({ href: '/admin/sales', label: '販売実績管理', icon: 'sales' })
+  // ① 陸送費設定を売買グループのメインナビへ昇格（設定サブから移動）
+  if (can('members')) primary.push({ href: '/admin/shipping', label: '陸送費設定', icon: 'vehicle' })
   primary.push({ href: '/admin/ai', label: 'AI分析・壁打ち', icon: 'ai' })
   if (can('chat')) primary.push({ href: '/admin/chat', label: 'チャット', icon: 'chat' })
   if (can('members')) {
@@ -52,7 +54,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   settingsItems.push({ href: '/admin/terms', label: '利用規約設定', icon: 'contract' })
   settingsItems.push({ href: '/admin/notes', label: '注意書き設定', icon: 'announcement' })
   settingsItems.push({ href: '/admin/manual', label: '実践マニュアル', icon: 'report' })
-  if (can('members')) settingsItems.push({ href: '/admin/shipping', label: '陸送費設定', icon: 'vehicle' })
 
   // 本日のアラート（実データ。0件の項目は表示しない）
   const alerts = [

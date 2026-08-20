@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { apiRequireMemberAi } from '@/lib/portal/ai-gate'
-import { getEffectiveAiConfig, getRemainingSearches } from '@/lib/portal/ai-config'
+import { getEffectiveAiConfig, getRemainingSearches, getMemberAiInstructions } from '@/lib/portal/ai-config'
 import { assertQuota, consumeSearch, recordUsage, AiQuotaError } from '@/lib/portal/ai-usage'
 import { assertExpansion, recordExpansionUsage, ExpansionDisabledError } from '@/lib/portal/ai-expansions'
 import { createConversation, getConversation, listMessages, insertMessage } from '@/lib/portal/ai-conversations'
@@ -90,13 +90,14 @@ export async function POST(request: NextRequest) {
       : ({ role: 'assistant', content: extractText(m.content) } as AIChatTurn)))
   history.push(image ? { role: 'user', content: message, images: [image] } : { role: 'user', content: message })
 
-  // 実行（deep は反復多め）
+  // 実行（deep は反復多め）／⑫ 加盟者が設定した指示を system prompt へ反映
+  const memberInstructions = await getMemberAiInstructions(memberId)
   let result
   try {
     result = await runChat({
       providerId,
       model,
-      systemPrompt: buildMemberSystemPrompt(),
+      systemPrompt: buildMemberSystemPrompt(new Date(), memberInstructions),
       tools: MEMBER_MARKET_TOOLS,
       history,
       maxIterations: expansion === 'deep' ? 8 : 6,

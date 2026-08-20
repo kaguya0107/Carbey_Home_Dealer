@@ -1,17 +1,19 @@
 import { Info } from 'lucide-react'
 import { requireMemberAi } from '@/lib/portal/ai-gate'
-import { getRemainingSearches, getEffectiveAiConfig } from '@/lib/portal/ai-config'
+import { getRemainingSearches, getEffectiveAiConfig, getMemberAiInstructions } from '@/lib/portal/ai-config'
 import { getNote } from '@/lib/portal/editable-notes'
 import AiChatPanel from '@/components/portal-dark/AiChatPanel'
+import MemberAiInstructionsEditor from '@/components/portal-dark/MemberAiInstructionsEditor'
 
 export const dynamic = 'force-dynamic'
 
 export default async function MemberAiPage() {
   const { member } = await requireMemberAi()
-  const [{ remaining, allocated }, cfg, notice] = await Promise.all([
+  const [{ remaining, allocated }, cfg, notice, instructions] = await Promise.all([
     getRemainingSearches(member.id),
     getEffectiveAiConfig(member.id),
     getNote('member_ai_notice'),
+    getMemberAiInstructions(member.id),
   ])
   const expansions = { image: cfg.imageEnabled, deep: cfg.deepEnabled, docgen: cfg.docgenEnabled }
 
@@ -33,6 +35,8 @@ export default async function MemberAiPage() {
           </div>
         </div>
       )}
+
+      <MemberAiInstructionsEditor initial={instructions} />
 
       <AiChatPanel initialRemaining={remaining} allocated={allocated} expansions={expansions} />
     </div>

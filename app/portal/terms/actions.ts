@@ -11,6 +11,8 @@ export async function consentAction(): Promise<{ ok: boolean; error?: string }> 
     await consentToActive(session.userId)
     revalidatePath('/portal/terms')
     revalidatePath('/portal/onboarding')
+    revalidatePath('/portal/announcements')
+    revalidatePath('/portal/dashboard')
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : '同意の記録に失敗しました' }
