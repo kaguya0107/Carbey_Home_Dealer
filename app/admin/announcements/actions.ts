@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { requireStaff } from '@/lib/auth/session'
-import { createAnnouncement, deleteAnnouncement } from '@/lib/portal/announcements'
+import { createAnnouncement, archiveAnnouncement, unarchiveAnnouncement } from '@/lib/portal/announcements'
 
 function str(v: FormDataEntryValue | null): string | null {
   const s = typeof v === 'string' ? v.trim() : ''
@@ -23,12 +23,22 @@ export async function createAnnouncementAction(formData: FormData) {
   redirect('/admin/announcements?created=1')
 }
 
-/** お知らせを削除する（本部）。 */
-export async function deleteAnnouncementAction(formData: FormData) {
+/** お知らせをアーカイブする（本部）。内容は保全され、アーカイブ一覧で確認できる。 */
+export async function archiveAnnouncementAction(formData: FormData) {
   await requireStaff()
   const id = String(formData.get('id') ?? '')
   if (!id) redirect('/admin/announcements')
-  await deleteAnnouncement(id)
+  await archiveAnnouncement(id)
+  revalidatePath('/admin/announcements')
+  redirect('/admin/announcements')
+}
+
+/** アーカイブを解除して有効に戻す（本部）。 */
+export async function unarchiveAnnouncementAction(formData: FormData) {
+  await requireStaff()
+  const id = String(formData.get('id') ?? '')
+  if (!id) redirect('/admin/announcements')
+  await unarchiveAnnouncement(id)
   revalidatePath('/admin/announcements')
   redirect('/admin/announcements')
 }

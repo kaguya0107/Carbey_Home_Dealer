@@ -54,6 +54,31 @@ export async function listRegistryNotes(): Promise<Array<EditableNote & { label:
   })
 }
 
+// ---------------------------------------------------------------------
+// ⑫ AIプロンプト入力（本部AI用のナレッジ／指示）
+//   editable_notes を流用するが、加盟店に「表示」する注意書きではなく本部AIの system prompt に
+//   注入する内部設定のため、NOTE_REGISTRY には載せず専用キーで読み書きする。
+// ---------------------------------------------------------------------
+export const HQ_AI_INSTRUCTIONS_KEY = 'hq_ai_instructions'
+const AI_INSTRUCTION_KEYS: ReadonlyArray<string> = [HQ_AI_INSTRUCTIONS_KEY]
+
+/** AI指示（プロンプト）を取得。未設定なら空文字。 */
+export async function getAiInstruction(key: string): Promise<string> {
+  const note = await getNote(key)
+  return note?.body ?? ''
+}
+
+/** AI指示（プロンプト）を保存（本部）。専用キーのみ許可。 */
+export async function setAiInstruction(key: string, body: string, updatedBy?: string | null): Promise<void> {
+  if (!AI_INSTRUCTION_KEYS.includes(key)) throw new Error('未知のAI指示キーです。')
+  const client = createServiceRoleClient()
+  const { error } = await client.from('editable_notes').upsert(
+    { key, title: null, body: body ?? '', updated_at: new Date().toISOString(), updated_by: updatedBy ?? null } as never,
+    { onConflict: 'key' },
+  )
+  if (error) throw new Error(`AI指示の保存に失敗しました: ${error.message}`)
+}
+
 /** 本部による更新（upsert）。key はレジストリに含まれるもののみ許可。 */
 export async function upsertNote(
   key: string,

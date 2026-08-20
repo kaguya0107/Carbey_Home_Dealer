@@ -9,30 +9,38 @@ import { runAnalysisAction } from '@/app/admin/market-snapshot/analysis/actions'
 
 type FormFilter = {
   carName: string
+  keyword: string
   prefecture: string
   yearMin: string
   yearMax: string
   priceMinMan: string
   priceMaxMan: string
+  dateFrom: string
+  dateTo: string
 }
 
-const EMPTY: FormFilter = { carName: '', prefecture: '', yearMin: '', yearMax: '', priceMinMan: '', priceMaxMan: '' }
+const EMPTY: FormFilter = { carName: '', keyword: '', prefecture: '', yearMin: '', yearMax: '', priceMinMan: '', priceMaxMan: '', dateFrom: '', dateTo: '' }
 
 const numOrU = (s: string) => (s.trim() === '' ? undefined : Number(s))
 function toScopeFilter(f: FormFilter): ScopeFilter {
   return {
     carName: f.carName.trim() || undefined,
+    keyword: f.keyword.trim() || undefined,
     prefecture: f.prefecture || undefined,
     yearMin: numOrU(f.yearMin),
     yearMax: numOrU(f.yearMax),
     priceMinMan: numOrU(f.priceMinMan),
     priceMaxMan: numOrU(f.priceMaxMan),
+    dateFrom: f.dateFrom || undefined,
+    dateTo: f.dateTo || undefined,
   }
 }
 function scopeLabel(f: FormFilter): string {
   const parts = [f.carName.trim() || '全車種', f.prefecture || '全国']
+  if (f.keyword.trim()) parts.push(`「${f.keyword.trim()}」`)
   if (f.yearMin || f.yearMax) parts.push(`${f.yearMin || ''}〜${f.yearMax || ''}年`)
   if (f.priceMinMan || f.priceMaxMan) parts.push(`${f.priceMinMan || ''}〜${f.priceMaxMan || ''}万`)
+  if (f.dateFrom || f.dateTo) parts.push(`収集 ${f.dateFrom || ''}〜${f.dateTo || ''}`)
   return parts.join(' / ')
 }
 
@@ -41,8 +49,8 @@ const SCOPES = [
   { key: 'B', accent: 'violet', ring: 'ring-violet-200', bar: 'bg-violet-400', text: 'text-violet-700', dot: 'bg-violet-500' },
 ] as const
 
-export default function MarketAnalysisPanel() {
-  const [filterA, setFilterA] = useState<FormFilter>({ ...EMPTY, carName: '' })
+export default function MarketAnalysisPanel({ initialPrefecture }: { initialPrefecture?: string } = {}) {
+  const [filterA, setFilterA] = useState<FormFilter>({ ...EMPTY, prefecture: initialPrefecture ?? '' })
   const [filterB, setFilterB] = useState<FormFilter>({ ...EMPTY })
   const [showB, setShowB] = useState(false)
   const [resultA, setResultA] = useState<ScopeResult | null>(null)
@@ -151,6 +159,11 @@ function ScopeForm({
           </label>
         </div>
 
+        <label className="block text-xs text-slate-500">
+          キーワード（車種名・グレード・メーカー・色を横断検索）
+          <input value={value.keyword} onChange={(e) => set('keyword', e.target.value)} placeholder="例）ハイブリッド／4WD／黒／レクサス など" className={`mt-1 ${input}`} />
+        </label>
+
         <div className="grid grid-cols-2 gap-2">
           <div>
             <div className="text-xs text-slate-500">年式（西暦）</div>
@@ -167,6 +180,18 @@ function ScopeForm({
               <span className="text-slate-400">〜</span>
               <input value={value.priceMaxMan} onChange={(e) => set('priceMaxMan', e.target.value)} inputMode="numeric" placeholder="上限" className={input} />
             </div>
+          </div>
+        </div>
+
+        <div>
+          <div className="text-xs text-slate-500">
+            収集期間（任意）
+            <span className="ml-1 text-[10px] text-slate-400">指定すると30日を超える蓄積データも対象（重複除去：期間内で最新の1件）</span>
+          </div>
+          <div className="mt-1 flex items-center gap-1">
+            <input type="date" value={value.dateFrom} onChange={(e) => set('dateFrom', e.target.value)} className={input} />
+            <span className="text-slate-400">〜</span>
+            <input type="date" value={value.dateTo} onChange={(e) => set('dateTo', e.target.value)} className={input} />
           </div>
         </div>
       </CardBody>
@@ -190,6 +215,7 @@ function Results({
     f: FormFilter
   }[]
   const sampled = active.some((x) => x.r.count > x.r.sampleSize)
+  const periodBased = active.some((x) => x.r.periodBased)
 
   const metricRows: { label: string; get: (r: ScopeResult) => string }[] = [
     { label: '件数', get: (r) => r.count.toLocaleString('ja-JP') + '件' },
@@ -282,12 +308,17 @@ function Results({
         ))}
       </div>
 
-      {sampled && (
+      {periodBased ? (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          収集期間を指定したため、直近30日ではなく<strong className="font-semibold">蓄積データ全体</strong>を対象に集計しています。同一車両の期間内重複は<strong className="font-semibold">最新の1件に除去</strong>済みです（対象は各最大1,000件・件数はその除去後の値）。
+        </div>
+      ) : sampled ? (
         <div className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
           <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           件数が多いため、価格・年式・走行の統計は最新の一部サンプル（各最大1,000件）から算出しています。件数（総数）は正確な値です。
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

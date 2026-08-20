@@ -17,6 +17,8 @@ export type SnapshotRun = {
   prefectures: string[]
   pagesFetched: number | null
   rowsIngested: number | null
+  errorMessage: string | null // ⑦ 失敗理由
+  templateId: string | null // ⑦ 再取得（該当テンプレのクールダウン解除）用
 }
 
 export type SnapshotStatus = {
@@ -117,12 +119,14 @@ export async function getRecentRuns(limit = 20): Promise<SnapshotRun[]> {
   const client = createPublicReadClient()
   const { data } = await client
     .from('cs_market_snapshot_runs')
-    .select('id, started_at, completed_at, status, trigger_type, criteria, pages_fetched, rows_ingested')
+    .select('id, started_at, completed_at, status, trigger_type, criteria, pages_fetched, rows_ingested, error_message, metadata')
     .order('created_at', { ascending: false })
     .limit(limit)
 
   return (data ?? []).map((r) => {
     const criteria = (r.criteria ?? {}) as Record<string, unknown>
+    const metadata = (r.metadata ?? {}) as Record<string, unknown>
+    const errRaw = r.error_message
     return {
       id: r.id as string,
       startedAt: r.started_at as string | null,
@@ -133,6 +137,8 @@ export async function getRecentRuns(limit = 20): Promise<SnapshotRun[]> {
       prefectures: toStringArray(criteria.prefectures),
       pagesFetched: r.pages_fetched as number | null,
       rowsIngested: r.rows_ingested as number | null,
+      errorMessage: errRaw == null ? null : typeof errRaw === 'string' ? errRaw : JSON.stringify(errRaw),
+      templateId: typeof metadata.template_id === 'string' ? metadata.template_id : null,
     }
   })
 }
@@ -228,6 +234,68 @@ export async function getPrefectureCoverage(): Promise<PrefectureCoverage[]> {
     return b.listingCount - a.listingCount
   })
   return rows
+}
+
+export type PrefectureSnapshot = {
+  prefecture: string
+  count: number // 新着（直近N日・収集日時ベース）の件数
+  medianMan: number | null // 中央価格（万円）
+  topCars: { car: string; count: number }[]
+  latestFetchedAt: string | null
+}
+
+/**
+ * ⑨ 都道府県別「新着スナップショット」。取得済みデータ（recent_market_observations・30日ローリング）を
+ * 収集日時（fetched_at）で「直近 days 日」に絞って都道府県ごとに集計する。スクレイパは無変更。
+ * データのある県（収集対象の県）のみ返す（件数の多い順）。
+ */
+export async function getPrefectureSnapshots(days: number): Promise<PrefectureSnapshot[]> {
+  const client = createPublicReadClient()
+  const since = new Date(Date.now() - days * 24 * HOUR_MS).toISOString()
+
+  // 47県の件数を並列 head count（直近N日・価格ありのみ）
+  const counts = await Promise.all(
+    PREFECTURES.map(async (p) => {
+      const { count } = await client
+        .from('recent_market_observations')
+        .select('*', { count: 'exact', head: true })
+        .eq('region_prefecture', p)
+        .gte('fetched_at', since)
+        .not('price_body_yen', 'is', null)
+      return [p, count ?? 0] as const
+    }),
+  )
+
+  // 件数>0 の県だけ、サンプルで中央価格・主要車種・最終収集を算出
+  const nonZero = counts.filter(([, c]) => c > 0)
+  const out = await Promise.all(
+    nonZero.map(async ([prefecture, count]) => {
+      const { data } = await client
+        .from('recent_market_observations')
+        .select('price_body_yen, car_name, fetched_at')
+        .eq('region_prefecture', prefecture)
+        .gte('fetched_at', since)
+        .not('price_body_yen', 'is', null)
+        .order('fetched_at', { ascending: false })
+        .limit(1000)
+      const rows = (data ?? []) as Array<{ price_body_yen: number | null; car_name: string | null; fetched_at: string | null }>
+      const prices = rows
+        .map((r) => r.price_body_yen)
+        .filter((v): v is number => v != null && v > 0)
+        .map((y) => Math.round(y / 10_000))
+        .sort((a, b) => a - b)
+      const medianMan = prices.length ? prices[Math.floor(prices.length / 2)] : null
+      const byCar = new Map<string, number>()
+      for (const r of rows) if (r.car_name) byCar.set(r.car_name, (byCar.get(r.car_name) ?? 0) + 1)
+      const topCars = [...byCar.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([car, c]) => ({ car, count: c }))
+      const latestFetchedAt = rows.reduce<string | null>(
+        (mx, r) => (r.fetched_at && (!mx || r.fetched_at > mx) ? r.fetched_at : mx),
+        null,
+      )
+      return { prefecture, count, medianMan, topCars, latestFetchedAt }
+    }),
+  )
+  return out.sort((a, b) => b.count - a.count)
 }
 
 /** メーカーコード → 表示名（cs_market_area_makers から。SZ→スズキ 等） */

@@ -14,6 +14,8 @@ import { getOwnFlow } from '@/lib/portal/flow'
 import { listOwnOrders } from '@/lib/portal/orders'
 import { getDealBoardSummary, listOwnActiveDeals, DEAL_STAGE_LABEL } from '@/lib/portal/deals'
 import { listAnnouncements } from '@/lib/portal/announcements'
+import { hasConsented } from '@/lib/portal/agreements'
+import TermsConsentNotice from '@/components/portal-dark/TermsConsentNotice'
 import { listInvoices, INVOICE_KIND_LABEL, INVOICE_STATUS_LABEL } from '@/lib/portal/billing'
 import { getMonthlyReport } from '@/lib/portal/sales'
 import { getOwnAutoCapacity, getMemberWaitingPosition } from '@/lib/portal/auto-trading'
@@ -44,6 +46,7 @@ export default async function MemberDashboardPage() {
     getOwnFlowBudgets(session.userId), // 予算振り分け（両フロー保有者のみUI表示）
     listPlans(false), // #31 上位プラン紹介（有効プランのみ）
   ])
+  const consent = await hasConsented(session.userId) // ⑬ 規約同意の状態（未同意なら常設バナー）
   const waitingPos = member && autoCapacity ? await getMemberWaitingPosition(member.id) : null // 受注待ちの順番（autoCapacity 依存）
   // 受注不可の理由が「全体上限のみ」（枠・資金はOK）なら予約導線を出す
   const canReserve = !!autoCapacity && !autoCapacity.canAccept && !autoCapacity.depositLocked && autoCapacity.availableSlots > 0 && autoCapacity.globalAvailable <= 0
@@ -71,6 +74,11 @@ export default async function MemberDashboardPage() {
 
   return (
     <div className="space-y-5">
+      {/* ⑬ 規約未同意なら最上部に常設（スルー防止・その場で同意可） */}
+      {consent.agreement && !consent.consented && (
+        <TermsConsentNotice version={consent.agreement.version} title={consent.agreement.title} />
+      )}
+
       {/* ===== ヒーロー ===== */}
       <div className="relative overflow-hidden rounded-2xl border border-carbon-700 bg-carbon-900">
         <Image src="/login-hero.png" alt="" fill priority sizes="100vw" className="object-cover object-right opacity-40" />
@@ -365,13 +373,15 @@ export default async function MemberDashboardPage() {
             ) : (
               <ul className="divide-y divide-carbon-700">
                 {announcements.map((a) => (
-                  <li key={a.id} className="flex gap-2.5 px-5 py-3">
-                    <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${a.level === 'important' ? 'bg-brand-500' : 'bg-slate-500'}`} />
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[13px] font-medium text-slate-200">{a.title}</div>
-                      <div className="mt-0.5 line-clamp-1 text-[11px] text-slate-500">{a.body}</div>
-                    </div>
-                    <span className="shrink-0 text-[10px] text-slate-600">{new Date(a.created_at).toLocaleDateString('ja-JP')}</span>
+                  <li key={a.id}>
+                    <Link href={`/portal/announcements/${a.id}`} className="flex gap-2.5 px-5 py-3 transition hover:bg-carbon-800/50">
+                      <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${a.level === 'important' ? 'bg-brand-500' : 'bg-slate-500'}`} />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[13px] font-medium text-slate-200">{a.title}</div>
+                        <div className="mt-0.5 line-clamp-1 text-[11px] text-slate-500">{a.body}</div>
+                      </div>
+                      <span className="shrink-0 text-[10px] text-slate-600">{new Date(a.created_at).toLocaleDateString('ja-JP')}</span>
+                    </Link>
                   </li>
                 ))}
               </ul>

@@ -13,6 +13,13 @@ const ERR: Record<string, string> = {
   forbidden: 'この会話にはアクセスできません。',
 }
 
+// 本部（社内オペレーション）向けの3方向。来店客への接客ではなく、スタッフ実務の入口として提示する。
+const DIRECTIONS: { label: string; example: string }[] = [
+  { label: '市場分析', example: '今の中古車市場の概況を教えて。売れ筋と相場感は？' },
+  { label: '対応文の下書き', example: '値下げ交渉の問い合わせに、丁寧に断りつつ代案を示す返信文案を作って' },
+  { label: '経営の壁打ち', example: '軽自動車の在庫を増やすべきか、メリット・デメリットで壁打ちしたい' },
+]
+
 export default function AdminAiChatPanel() {
   const [messages, setMessages] = useState<Msg[]>([])
   const [input, setInput] = useState('')
@@ -24,8 +31,8 @@ export default function AdminAiChatPanel() {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
   })
 
-  async function send() {
-    const text = input.trim()
+  async function send(textArg?: string) {
+    const text = (textArg ?? input).trim()
     if (!text || loading) return
     setInput('')
     setMessages((m) => [...m, { role: 'user', text }])
@@ -61,10 +68,26 @@ export default function AdminAiChatPanel() {
 
       <div ref={listRef} className="flex-1 space-y-4 overflow-y-auto bg-slate-50 px-4 py-4">
         {messages.length === 0 && (
-          <div className="mt-8 text-center text-sm text-slate-400">
+          <div className="mx-auto mt-6 max-w-lg text-center">
             <Sparkles className="mx-auto mb-2 h-6 w-6 text-brand-400/70" />
-            市場分析・カスタマー対応の下書き・経営の壁打ちに使えます。<br />
-            例：「今の中古車市場の概況は？」「値下げ相談への回答案を作って」
+            <p className="text-sm font-medium text-slate-600">本部スタッフ向けの社内アシスタントです</p>
+            <p className="mt-1 text-xs text-slate-400">
+              来店客への接客ではなく、市場分析から対応文の下書き・経営相談・アイデア出しまで幅広く相談できます。
+              まずは例文から始められます。
+            </p>
+            <div className="mt-4 grid gap-2 text-left sm:grid-cols-3">
+              {DIRECTIONS.map((d) => (
+                <button
+                  key={d.label}
+                  type="button"
+                  onClick={() => send(d.example)}
+                  className="rounded-lg border border-slate-200 bg-white p-3 text-left transition hover:border-brand-300 hover:bg-brand-50/40"
+                >
+                  <div className="text-sm font-semibold text-slate-700">{d.label}</div>
+                  <div className="mt-1 text-xs text-slate-400">{d.example}</div>
+                </button>
+              ))}
+            </div>
           </div>
         )}
         {messages.map((m, i) => (
@@ -110,12 +133,12 @@ export default function AdminAiChatPanel() {
               }
             }}
             rows={1}
-            placeholder="市場分析・カスタマー対応・経営について質問…（Shift+Enter で改行）"
+            placeholder="分析・対応文の下書き・経営相談など、なんでも相談…（Shift+Enter で改行）"
             disabled={loading}
             className="max-h-32 flex-1 resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-400/20 disabled:opacity-50"
           />
           <button
-            onClick={send}
+            onClick={() => send()}
             disabled={loading || !input.trim()}
             className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-brand-500 text-white transition hover:bg-brand-600 disabled:opacity-40"
             aria-label="送信"

@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { Wallet, ChevronRight } from 'lucide-react'
 import { requireFeature } from '@/lib/auth/session'
 import { listAllMemberFunds } from '@/lib/portal/ledger'
-import { sumMonthlyMgmtFee } from '@/lib/portal/mgmt-fee'
+import { sumMonthlyMgmtFee, listAllMgmtFeeRuns } from '@/lib/portal/mgmt-fee'
 import { yen } from '@/lib/portal/labels'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic'
  */
 export default async function AdminFundsPage() {
   await requireFeature('members')
-  const [funds, totalMgmtFee] = await Promise.all([listAllMemberFunds(), sumMonthlyMgmtFee()])
+  const [funds, totalMgmtFee, feeRuns] = await Promise.all([listAllMemberFunds(), sumMonthlyMgmtFee(), listAllMgmtFeeRuns()])
 
   const totalBalance = funds.reduce((s, f) => s + f.balanceYen, 0)                  // 仕入れ資金（預かり金）合計
   const totalJoiningFee = funds.reduce((s, f) => s + (f.joiningFeeYen ?? 0), 0)      // 加盟金 合計
@@ -98,6 +98,50 @@ export default async function AdminFundsPage() {
           </table>
         </div>
       </Card>
+
+      {/* ⑥ 月額管理手数料 自動引き落とし履歴（member_mgmt_fee_runs の可視化） */}
+      <div>
+        <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900">
+          月額管理手数料 引き落とし履歴
+          <span className="text-xs font-normal text-slate-400">（自動引き落とし・全会員／新しい順）</span>
+        </h2>
+        <Card>
+          <div className="overflow-x-auto rounded-2xl">
+            <table className="w-full text-sm">
+              <thead className="border-b border-slate-200 bg-slate-50 text-left text-slate-500">
+                <tr>
+                  <th className="px-5 py-3 font-medium">引き落とし日時</th>
+                  <th className="px-5 py-3 font-medium">加盟店</th>
+                  <th className="px-5 py-3 text-right font-medium">対象</th>
+                  <th className="px-5 py-3 text-right font-medium">金額（税込）</th>
+                  <th className="px-5 py-3 text-right font-medium">預かり金充当</th>
+                  <th className="px-5 py-3 text-right font-medium">請求</th>
+                  <th className="px-5 py-3 font-medium">メモ</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {feeRuns.length === 0 && (
+                  <tr><td colSpan={7} className="px-5 py-10 text-center text-slate-400">引き落とし履歴がありません。</td></tr>
+                )}
+                {feeRuns.map((r) => (
+                  <tr key={r.id} className="hover:bg-slate-50">
+                    <td className="whitespace-nowrap px-5 py-3 tabular-nums text-slate-600">{new Date(r.created_at).toLocaleString('ja-JP')}</td>
+                    <td className="px-5 py-3 font-medium text-slate-900">{r.memberName}</td>
+                    <td className="px-5 py-3 text-right tabular-nums text-slate-500">{r.months}ヶ月 × {r.slots}枠</td>
+                    <td className="px-5 py-3 text-right font-medium tabular-nums text-slate-800">{yen(r.gross_yen + r.tax_yen)}</td>
+                    <td className="px-5 py-3 text-right tabular-nums text-emerald-700">{r.from_deposit_yen > 0 ? yen(r.from_deposit_yen) : '—'}</td>
+                    <td className="px-5 py-3 text-right tabular-nums text-slate-600">{r.invoiced_yen > 0 ? yen(r.invoiced_yen) : '—'}</td>
+                    <td className="px-5 py-3 text-xs text-slate-400">{r.note ?? ''}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+        <p className="mt-2 text-xs text-slate-400">
+          ※ 税込金額のうち「預かり金充当」は預かり金台帳から引き落とした額、「請求」は請求書へ回した額です。記録は保全され削除されません。
+        </p>
+      </div>
     </div>
   )
 }

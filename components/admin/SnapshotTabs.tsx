@@ -1,11 +1,12 @@
 import Link from 'next/link'
-import { Radar, Activity, SlidersHorizontal, GitCompareArrows } from 'lucide-react'
+import { Radar, Activity, SlidersHorizontal, GitCompareArrows, MapPin } from 'lucide-react'
 
-/** 市場スナップショットの本部ページ共通タブ（監視 / 設定 / 分析）。単一ナビ項目の下で切替。 */
-export default function SnapshotTabs({ active }: { active: 'status' | 'settings' | 'analysis' }) {
+/** 市場スナップショットの本部ページ共通タブ（監視 / 設定 / 都道府県別 / 分析）。単一ナビ項目の下で切替。 */
+export default function SnapshotTabs({ active }: { active: 'status' | 'settings' | 'prefectures' | 'analysis' }) {
   const tabs = [
     { key: 'status', href: '/admin/market-snapshot', label: '収集状況', icon: Activity },
     { key: 'settings', href: '/admin/market-snapshot/settings', label: '収集設定', icon: SlidersHorizontal },
+    { key: 'prefectures', href: '/admin/market-snapshot/prefectures', label: '都道府県別スナップショット', icon: MapPin },
     { key: 'analysis', href: '/admin/market-snapshot/analysis', label: '突合・範囲分析', icon: GitCompareArrows },
   ] as const
 

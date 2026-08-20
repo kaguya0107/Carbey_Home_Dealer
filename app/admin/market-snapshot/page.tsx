@@ -1,4 +1,4 @@
-import { CheckCircle2, AlertTriangle, Clock, Database, Radar } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, Clock, Database, Radar, RefreshCw } from 'lucide-react'
 import { requireStaff } from '@/lib/auth/session'
 import { Card, CardHeader, CardBody } from '@/components/ui/Card'
 import SnapshotTabs from '@/components/admin/SnapshotTabs'
@@ -9,6 +9,7 @@ import {
   getPrefectureCoverage,
   getMakerNames,
 } from '@/lib/portal/market-snapshot'
+import { requeueSnapshotAction } from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,8 +44,13 @@ function freshness(ageHours: number | null): { label: string; cls: string } {
   return { label: '要確認', cls: 'bg-rose-50 text-rose-700' }
 }
 
-export default async function AdminMarketSnapshotPage() {
+export default async function AdminMarketSnapshotPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ requeue?: string; at?: string }>
+}) {
   await requireStaff()
+  const sp = await searchParams
   const [status, runs, daily, coverage, makerNames] = await Promise.all([
     getSnapshotStatus(),
     getRecentRuns(20),
@@ -71,6 +77,25 @@ export default async function AdminMarketSnapshotPage() {
       <p className="text-sm text-slate-500">
         カーセンサー市場データの自動収集（VPS）の稼働状況・鮮度・カバレッジを監視します。取得は自動で継続され、この画面は状況の確認用です。
       </p>
+
+      {sp.requeue === 'ok' && (
+        <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+          再取得を予約しました。{sp.at ? `次の取得時刻（${sp.at}）` : '次の取得時刻'}の巡回で自動的に再収集されます（3日クールダウンを解除しました）。
+        </div>
+      )}
+      {sp.requeue === 'disabled' && (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          対象テンプレが「無効」のため再取得されません。「収集設定」で有効化してください。
+        </div>
+      )}
+      {sp.requeue === 'error' && (
+        <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          再取得の予約に失敗しました（対象テンプレが見つからない可能性があります）。
+        </div>
+      )}
 
       {/* サマリ */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -184,27 +209,44 @@ export default async function AdminMarketSnapshotPage() {
                   {runs.length === 0 && (
                     <tr><td colSpan={4} className="px-2 py-8 text-center text-slate-400">実行履歴がありません。</td></tr>
                   )}
-                  {runs.map((r) => (
+                  {runs.map((r) => {
+                    const isFailed = !['success', 'running', 'pending'].includes(r.status)
+                    return (
                     <tr key={r.id} className="hover:bg-slate-50">
-                      <td className="whitespace-nowrap px-2 py-2 tabular-nums text-slate-600">{fmtDateTime(r.completedAt ?? r.startedAt)}</td>
-                      <td className="px-2 py-2 text-slate-700">
-                        <div className="max-w-[220px] truncate" title={`${makerLabel(r.makerCodes)} / ${r.prefectures.join('・') || '—'}`}>
+                      <td className="whitespace-nowrap px-2 py-2 align-top tabular-nums text-slate-600">{fmtDateTime(r.completedAt ?? r.startedAt)}</td>
+                      <td className="px-2 py-2 align-top text-slate-700">
+                        <div className="max-w-[240px] truncate" title={`${makerLabel(r.makerCodes)} / ${r.prefectures.join('・') || '—'}`}>
                           {r.prefectures.join('・') || '—'}
                         </div>
-                        <div className="max-w-[220px] truncate text-xs text-slate-400">{makerLabel(r.makerCodes)}</div>
+                        <div className="max-w-[240px] truncate text-xs text-slate-400">{makerLabel(r.makerCodes)}</div>
+                        {isFailed && r.errorMessage && (
+                          <div className="mt-1 max-w-[260px] truncate text-[11px] text-rose-500" title={r.errorMessage}>⚠ {r.errorMessage}</div>
+                        )}
                       </td>
-                      <td className="px-2 py-2 text-right tabular-nums text-slate-700">{(r.rowsIngested ?? 0).toLocaleString('ja-JP')}</td>
-                      <td className="px-2 py-2 text-center">
+                      <td className="px-2 py-2 text-right align-top tabular-nums text-slate-700">{(r.rowsIngested ?? 0).toLocaleString('ja-JP')}</td>
+                      <td className="px-2 py-2 text-center align-top">
                         {r.status === 'success' ? (
                           <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">成功</span>
                         ) : r.status === 'running' || r.status === 'pending' ? (
                           <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">実行中</span>
                         ) : (
-                          <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700">{r.status}</span>
+                          <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700">失敗</span>
+                        )}
+                        {isFailed && r.templateId && (
+                          <form action={requeueSnapshotAction} className="mt-1.5">
+                            <input type="hidden" name="templateId" value={r.templateId} />
+                            <button
+                              className="inline-flex items-center gap-1 rounded-full border border-brand-200 bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700 hover:bg-brand-100"
+                              title="このテンプレの3日クールダウンを解除し、次の取得時刻で再収集します"
+                            >
+                              <RefreshCw className="h-3 w-3" /> 再取得
+                            </button>
+                          </form>
                         )}
                       </td>
                     </tr>
-                  ))}
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
