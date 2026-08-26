@@ -18,6 +18,8 @@ async function probe(label, path, extraHeaders = {}) {
   return res.status
 }
 
+
+
 console.log('=== Exposed schemas (root) ===')
 const rootRes = await fetch(`${url}/rest/v1/`, { headers })
 console.log(`root status: ${rootRes.status}`)
