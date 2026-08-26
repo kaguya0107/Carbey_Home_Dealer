@@ -108,8 +108,8 @@ export default function AiChatPanel({
         {messages.length === 0 && (
           <div className="mt-8 text-center text-sm text-slate-500">
             <Sparkles className="mx-auto mb-2 h-6 w-6 text-brand-500/60" />
-            相場・仕入れ・経営について聞いてみましょう。<br />
-            例：「プリウス30後期の相場は？」「最近値下がりしている車種は？」
+            相場・仕入れ・経営に加え、システムの使い方や、規約・料金に基づく対応可否も相談できます。<br />
+            例：「プリウス30後期の相場は？」「出金申請はどこからする？」「返品はできますか？（規約で確認して）」
           </div>
         )}
         {messages.map((m, i) => (
@@ -187,7 +187,7 @@ export default function AiChatPanel({
               }
             }}
             rows={1}
-            placeholder="相場・仕入れ・経営について質問…（Shift+Enter で改行）"
+            placeholder="相場・使い方・対応可否・経営について質問…（Shift+Enter で改行）"
             disabled={loading || blocked}
             className="max-h-32 flex-1 resize-none rounded-lg border border-carbon-600 bg-carbon-900 px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:opacity-50"
           />

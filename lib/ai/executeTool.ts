@@ -19,6 +19,7 @@ import {
   fetchRegionalTrend,
   fetchRisingModels,
 } from '@/lib/analytics/marketTrendQueries'
+import { getActiveAgreement, listAttachments } from '@/lib/portal/agreements'
 import type { ToolName } from './tools'
 
 export type Evidence = {
@@ -1229,6 +1230,41 @@ export async function executeTool(
             ? { from: dates[0], to: dates[dates.length - 1], points: result.length }
             : undefined,
           summary: `人気上昇車種: ${region ?? '全国'} 直近${days}日 (${result.length}件)`,
+        },
+      }
+    }
+
+    case 'get_terms': {
+      // ⑯ 現行の利用規約＋別添（各種料金表）を返し、対応可否・料金の根拠にさせる。
+      const agreement = await getActiveAgreement()
+      if (!agreement) {
+        return {
+          result: { available: false, message: '公開中の利用規約がありません。可否は本部にご確認ください。' },
+          evidence: {
+            function: 'get_terms',
+            args: {},
+            result_count: 0,
+            snapshot_date: today,
+            summary: '規約: 公開中なし',
+          },
+        }
+      }
+      const attachments = await listAttachments(agreement.id)
+      return {
+        result: {
+          available: true,
+          title: agreement.title,
+          version: agreement.version,
+          body: agreement.body ?? '',
+          attachments: attachments.map((a) => ({ title: a.title, body: a.body ?? '' })),
+          note: 'ここに明記がない事項は「本部にご確認ください」と案内すること。',
+        },
+        evidence: {
+          function: 'get_terms',
+          args: {},
+          result_count: attachments.length + 1,
+          snapshot_date: today,
+          summary: `規約 v${agreement.version} + 別添${attachments.length}件`,
         },
       }
     }
