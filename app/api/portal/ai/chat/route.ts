@@ -6,7 +6,7 @@ import { assertExpansion, recordExpansionUsage, ExpansionDisabledError } from '@
 import { createConversation, getConversation, listMessages, insertMessage } from '@/lib/portal/ai-conversations'
 import { runChat } from '@/lib/ai/orchestrator'
 import { buildMemberSystemPrompt } from '@/lib/ai/client'
-import { MEMBER_MARKET_TOOLS } from '@/lib/ai/tools'
+import { MEMBER_AI_TOOLS } from '@/lib/ai/tools'
 import { modelForTier } from '@/lib/ai/models'
 import { getProvider, DEFAULT_PROVIDER } from '@/lib/ai/providers/registry'
 import type { AIChatTurn, AIImage } from '@/lib/ai/providers/types'
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
       providerId,
       model,
       systemPrompt: buildMemberSystemPrompt(new Date(), memberInstructions),
-      tools: MEMBER_MARKET_TOOLS,
+      tools: MEMBER_AI_TOOLS,
       history,
       maxIterations: expansion === 'deep' ? 8 : 6,
     })

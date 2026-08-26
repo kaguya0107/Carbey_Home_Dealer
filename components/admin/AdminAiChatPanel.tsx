@@ -13,11 +13,11 @@ const ERR: Record<string, string> = {
   forbidden: 'この会話にはアクセスできません。',
 }
 
-// 本部（社内オペレーション）向けの3方向。来店客への接客ではなく、スタッフ実務の入口として提示する。
+// 本部（社内オペレーション）向けの入口。クレーム対応を先頭に、スタッフ実務の入口として提示する。
 const DIRECTIONS: { label: string; example: string }[] = [
-  { label: '市場分析', example: '今の中古車市場の概況を教えて。売れ筋と相場感は？' },
+  { label: 'クレーム対応', example: '「納車後に不具合が見つかった、返品したい」というお客様のクレームに、規約に沿ってできる/できないを整理し、回答案を作って' },
   { label: '対応文の下書き', example: '値下げ交渉の問い合わせに、丁寧に断りつつ代案を示す返信文案を作って' },
-  { label: '経営の壁打ち', example: '軽自動車の在庫を増やすべきか、メリット・デメリットで壁打ちしたい' },
+  { label: '市場分析・壁打ち', example: '今の中古車市場の概況と、軽の在庫を増やすべきか壁打ちしたい' },
 ]
 
 export default function AdminAiChatPanel() {
@@ -63,7 +63,7 @@ export default function AdminAiChatPanel() {
     <div className="flex h-[calc(100vh-13rem)] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
       <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-2.5">
         <Sparkles className="h-4 w-4 text-brand-500" />
-        <span className="text-sm font-medium text-slate-800">本部AI（分析・壁打ち・カスタマー対応）</span>
+        <span className="text-sm font-medium text-slate-800">本部AI（クレーム対応・分析・壁打ち）</span>
       </div>
 
       <div ref={listRef} className="flex-1 space-y-4 overflow-y-auto bg-slate-50 px-4 py-4">
@@ -72,7 +72,7 @@ export default function AdminAiChatPanel() {
             <Sparkles className="mx-auto mb-2 h-6 w-6 text-brand-400/70" />
             <p className="text-sm font-medium text-slate-600">本部スタッフ向けの社内アシスタントです</p>
             <p className="mt-1 text-xs text-slate-400">
-              来店客への接客ではなく、市場分析から対応文の下書き・経営相談・アイデア出しまで幅広く相談できます。
+              規約・料金表に沿ったクレーム対応の可否判断を軸に、対応文の下書き・市場分析・経営相談まで幅広く相談できます。
               まずは例文から始められます。
             </p>
             <div className="mt-4 grid gap-2 text-left sm:grid-cols-3">

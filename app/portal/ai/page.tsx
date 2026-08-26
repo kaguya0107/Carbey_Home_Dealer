@@ -22,7 +22,7 @@ export default async function MemberAiPage() {
       <div>
         <h1 className="text-xl font-bold text-white">AI相談・相場分析</h1>
         <p className="text-sm text-slate-400">
-          カーセンサーの市場データと業界知識で、相場・仕入れ・値付け・経営の相談ができます。
+          相場・仕入れ・値付け・経営の相談に加え、システムの使い方や、規約・料金表に基づく対応可否（対応可能／対応不可）も案内します。
         </p>
       </div>
 

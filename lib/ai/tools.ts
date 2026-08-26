@@ -288,6 +288,20 @@ export const TOOLS: AITool[] = [
       required: [],
     },
   },
+  {
+    name: 'get_terms',
+    description:
+      '現行の利用規約・契約・各種料金表（別添）の全文を取得します。' +
+      '返品・保証・キャンセル・解約・手数料・料金・預かり金・出金・違約金など、' +
+      '規約や料金に関わる「できる／できない（対応可能／対応不可）」や条件を尋ねられたら、' +
+      'まずこのツールで規約・料金表を取得し、その内容を根拠に回答してください。' +
+      '入力は不要です。',
+    input_schema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
 ]
 
 export type ToolName =
@@ -305,6 +319,7 @@ export type ToolName =
   | 'get_inventory_trend'
   | 'get_regional_trend'
   | 'get_rising_models'
+  | 'get_terms'
 
 /**
  * 加盟店AI（β）で公開する市場ツール。
@@ -326,3 +341,9 @@ export const MEMBER_MARKET_TOOL_NAMES: ToolName[] = [
 export const MEMBER_MARKET_TOOLS: AITool[] = TOOLS.filter((t) =>
   (MEMBER_MARKET_TOOL_NAMES as string[]).includes(t.name),
 )
+
+// ⑯ 規約参照ツール。加盟者AIに公開し、対応可否（対応可能/対応不可）や料金の判断に使わせる。
+export const GET_TERMS_TOOL: AITool = TOOLS.find((t) => t.name === 'get_terms')!
+
+// 加盟者AIのツールセット＝市場ツール＋規約参照ツール。
+export const MEMBER_AI_TOOLS: AITool[] = [...MEMBER_MARKET_TOOLS, GET_TERMS_TOOL]

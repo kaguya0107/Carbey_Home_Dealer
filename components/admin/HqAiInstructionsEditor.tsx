@@ -37,7 +37,9 @@ export default function HqAiInstructionsEditor({ initial }: { initial: string })
       <div className="space-y-2 border-t border-slate-100 px-4 py-3">
         <p className="text-xs text-slate-500">
           ここに書いた内容は本部AIの回答方針として常に参照されます（加盟店には表示されません）。
-          例：「返信文案は敬語で3案出す」「当社の陸送費の考え方は〜」「よくある問い合わせと回答例：〜」など。
+          現行の利用規約・別添（料金表）はAIが自動で参照するため、ここには<strong>規約に載っていない契約上の特記事項・
+          クレーム対応の運用基準・エスカレーション先</strong>などを補足すると精度が上がります。
+          例：「規約外の全額返金は不可、代替は再整備」「クレームは3営業日以内に一次回答」「重大案件は◯◯へエスカレーション」など。
         </p>
         <textarea
           value={text}

@@ -14,7 +14,7 @@ export default async function AdminAiPage() {
       <div>
         <h1 className="text-xl font-bold text-slate-900">AI分析・壁打ち</h1>
         <p className="mt-1 text-sm text-slate-500">
-          カーセンサーの市場データと業界知識で、市場分析・カスタマー対応の下書き・経営の壁打ちができます。
+          規約・料金表に沿った<strong>クレーム対応（できる／できないの判定）</strong>を軸に、対応文の下書き・市場分析・経営の壁打ちができます。
         </p>
       </div>
       <HqAiInstructionsEditor initial={hqInstructions} />

@@ -6,6 +6,7 @@ import { createConversation, getConversation, listMessages, insertMessage } from
 import { runChat } from '@/lib/ai/orchestrator'
 import { buildHqSystemPrompt } from '@/lib/ai/client'
 import { getAiInstruction, HQ_AI_INSTRUCTIONS_KEY } from '@/lib/portal/editable-notes'
+import { getActiveAgreement, listAttachments } from '@/lib/portal/agreements'
 import { MEMBER_MARKET_TOOLS } from '@/lib/ai/tools'
 import { modelForTier } from '@/lib/ai/models'
 import { getProvider, DEFAULT_PROVIDER } from '@/lib/ai/providers/registry'
@@ -61,14 +62,25 @@ export async function POST(request: NextRequest) {
 
   await insertMessage({ conversationId: convId, role: 'user', content: { text: message } })
 
-  const hqInstructions = await getAiInstruction(HQ_AI_INSTRUCTIONS_KEY)
+  // ⑮ クレーム対応の判定根拠として、現行の利用規約＋別添（各種料金表）を読み込んで注入する。
+  const [hqInstructions, agreement] = await Promise.all([
+    getAiInstruction(HQ_AI_INSTRUCTIONS_KEY),
+    getActiveAgreement(),
+  ])
+  let termsContext = ''
+  if (agreement) {
+    const attachments = await listAttachments(agreement.id)
+    const parts = [`# 利用規約：${agreement.title}（v${agreement.version}）\n${agreement.body ?? ''}`]
+    for (const a of attachments) parts.push(`# 別添：${a.title}\n${a.body ?? ''}`)
+    termsContext = parts.join('\n\n').slice(0, 40000) // 過大注入の保険（通常は全文が収まる）
+  }
 
   let result
   try {
     result = await runChat({
       providerId,
       model,
-      systemPrompt: buildHqSystemPrompt(new Date(), hqInstructions),
+      systemPrompt: buildHqSystemPrompt(new Date(), hqInstructions, termsContext),
       tools: MEMBER_MARKET_TOOLS,
       history,
     })
