@@ -37,8 +37,17 @@ export default function DealBoard({ deal }: { deal: VehicleDealRow }) {
     <div className="rounded-xl border border-carbon-700 bg-carbon-800/40 p-4">
       {/* 車両情報 */}
       <div className="mb-3 flex items-center justify-between">
-        <div className="text-sm font-semibold text-white">
+        <div className="flex items-center gap-2 text-sm font-semibold text-white">
           {[deal.maker, deal.car_model, deal.year].filter(Boolean).join(' ') || '車両案件'}
+          {/* ⑳ ダイレクトプライシング設定中 */}
+          {deal.direct_pricing_at && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-300"
+              title={deal.direct_pricing_target_yen != null ? `想定 ${Math.round(deal.direct_pricing_target_yen / 10000)}万円` : 'ダイレクトプライシング設定中'}
+            >
+              DP設定中
+            </span>
+          )}
         </div>
         {deal.order_amount_yen != null && (
           <div className="text-xs text-slate-400">発注 ¥{deal.order_amount_yen.toLocaleString()}</div>

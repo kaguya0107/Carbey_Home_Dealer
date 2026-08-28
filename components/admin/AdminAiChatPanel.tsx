@@ -2,6 +2,13 @@
 
 import { useRef, useState } from 'react'
 import { Send, Sparkles, Database, Loader2 } from 'lucide-react'
+import AiHistoryMenu, { type HistoryItem } from '@/components/ai/AiHistoryMenu'
+import {
+  listHqConversationsAction,
+  loadHqConversationAction,
+  deleteHqConversationAction,
+  pinHqConversationAction,
+} from '@/app/admin/ai/actions'
 
 type Evidence = { function: string; result_count: number; snapshot_date: string; summary?: string }
 type Msg = { role: 'user' | 'assistant'; text: string; evidence?: Evidence[] }
@@ -20,16 +27,45 @@ const DIRECTIONS: { label: string; example: string }[] = [
   { label: '市場分析・壁打ち', example: '今の中古車市場の概況と、軽の在庫を増やすべきか壁打ちしたい' },
 ]
 
-export default function AdminAiChatPanel() {
-  const [messages, setMessages] = useState<Msg[]>([])
+export default function AdminAiChatPanel({
+  initialConversations = [],
+  initialConversationId = null,
+  initialMessages = [],
+}: {
+  initialConversations?: HistoryItem[]
+  initialConversationId?: string | null
+  initialMessages?: Msg[]
+} = {}) {
+  const [messages, setMessages] = useState<Msg[]>(initialMessages)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [conversationId, setConversationId] = useState<string | null>(null)
+  const [conversationId, setConversationId] = useState<string | null>(initialConversationId)
+  const [conversations, setConversations] = useState<HistoryItem[]>(initialConversations)
   const listRef = useRef<HTMLDivElement>(null)
 
   const scrollDown = () => requestAnimationFrame(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
   })
+
+  const refreshList = () => listHqConversationsAction().then(setConversations).catch(() => {})
+
+  async function selectConversation(id: string) {
+    if (id === conversationId || loading) return
+    setLoading(true)
+    const r = await loadHqConversationAction(id)
+    setLoading(false)
+    if (r.ok && r.messages) { setMessages(r.messages as Msg[]); setConversationId(id); scrollDown() }
+  }
+  function newChat() { setMessages([]); setConversationId(null); setInput('') }
+  async function pinConversation(id: string, pinned: boolean) {
+    setConversations((cs) => cs.map((c) => (c.id === id ? { ...c, pinned } : c)))
+    await pinHqConversationAction(id, pinned); refreshList()
+  }
+  async function removeConversation(id: string) {
+    setConversations((cs) => cs.filter((c) => c.id !== id))
+    if (id === conversationId) newChat()
+    await deleteHqConversationAction(id); refreshList()
+  }
 
   async function send(textArg?: string) {
     const text = (textArg ?? input).trim()
@@ -50,6 +86,7 @@ export default function AdminAiChatPanel() {
       } else {
         if (data.conversationId) setConversationId(data.conversationId)
         setMessages((m) => [...m, { role: 'assistant', text: data.text, evidence: data.evidence }])
+        refreshList() // ⑰ 新規会話を履歴一覧へ反映
       }
     } catch {
       setMessages((m) => [...m, { role: 'assistant', text: '通信エラーが発生しました。' }])
@@ -61,9 +98,18 @@ export default function AdminAiChatPanel() {
 
   return (
     <div className="flex h-[calc(100vh-13rem)] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
-      <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-2.5">
-        <Sparkles className="h-4 w-4 text-brand-500" />
-        <span className="text-sm font-medium text-slate-800">本部AI（クレーム対応・分析・壁打ち）</span>
+      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2.5">
+        <span className="flex items-center gap-2 text-sm font-medium text-slate-800">
+          <Sparkles className="h-4 w-4 text-brand-500" /> 本部AI（クレーム対応・分析・壁打ち）
+        </span>
+        <AiHistoryMenu
+          items={conversations}
+          activeId={conversationId}
+          onNew={newChat}
+          onSelect={selectConversation}
+          onPin={pinConversation}
+          onDelete={removeConversation}
+        />
       </div>
 
       <div ref={listRef} className="flex-1 space-y-4 overflow-y-auto bg-slate-50 px-4 py-4">

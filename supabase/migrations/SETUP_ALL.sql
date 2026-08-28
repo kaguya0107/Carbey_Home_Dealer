@@ -4290,6 +4290,25 @@ alter table portal.members
 comment on column portal.members.ai_custom_instructions is '加盟者がAI相談の回答方針として自由入力する指示（プロンプト）。system prompt 末尾へ追記。null/空=未設定。';
 
 
+-- #####################################################################
+-- ## AI会話のピン留め — migration 066
+-- #####################################################################
+alter table portal.ai_conversations
+  add column if not exists pinned_at timestamptz;
+comment on column portal.ai_conversations.pinned_at is 'ピン留め日時（⑰）。非nullで一覧先頭に固定。null=通常。';
+create index if not exists idx_ai_conv_pinned on portal.ai_conversations(pinned_at desc nulls last);
+
+
+-- #####################################################################
+-- ## 簡易ダイレクトプライシング — migration 067
+-- #####################################################################
+alter table portal.vehicle_deals
+  add column if not exists direct_pricing_at timestamptz,
+  add column if not exists direct_pricing_target_yen bigint;
+comment on column portal.vehicle_deals.direct_pricing_at is 'ダイレクトプライシング設定中の日時（⑳）。null=未設定。';
+comment on column portal.vehicle_deals.direct_pricing_target_yen is 'ダイレクトプライシングの想定販売価格（本体・円）。順位算出の基準。';
+
+
 -- ## 仕上げ: PostgREST スキーマキャッシュを再読込
 -- #####################################################################
 notify pgrst, 'reload schema';
