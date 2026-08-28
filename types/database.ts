@@ -509,6 +509,9 @@ export type VehicleDealRow = {
   prep_cleaned: boolean
   prep_photographed: boolean
   prep_listed_ready: boolean
+  // ⑳ ダイレクトプライシング（migration 067）
+  direct_pricing_at: string | null
+  direct_pricing_target_yen: number | null
   created_at: string
   updated_at: string
 }
@@ -716,6 +719,8 @@ export type AiConversationRow = {
   member_id: string | null
   title: string | null
   created_by: string | null
+  /** ピン留め日時（⑰・migration 066）。非nullで一覧先頭に固定。 */
+  pinned_at: string | null
   created_at: string
   updated_at: string
 }

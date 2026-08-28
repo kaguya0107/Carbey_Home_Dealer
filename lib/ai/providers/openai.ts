@@ -34,7 +34,21 @@ function toOpenAIMessages(
   ]
   for (const t of history) {
     if (t.role === 'user') {
-      out.push({ role: 'user', content: t.content })
+      // ⑲ 画像添付（スクショ等）があれば vision 用の content 配列で送る（gpt-4o はマルチモーダル）。
+      if (t.images && t.images.length > 0) {
+        out.push({
+          role: 'user',
+          content: [
+            ...(t.content ? [{ type: 'text' as const, text: t.content }] : []),
+            ...t.images.map((img) => ({
+              type: 'image_url' as const,
+              image_url: { url: `data:${img.media_type};base64,${img.data}` },
+            })),
+          ],
+        })
+      } else {
+        out.push({ role: 'user', content: t.content })
+      }
     } else if (t.role === 'assistant') {
       if (t.tool_calls && t.tool_calls.length > 0) {
         out.push({

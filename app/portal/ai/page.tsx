@@ -2,20 +2,28 @@ import { Info } from 'lucide-react'
 import { requireMemberAi } from '@/lib/portal/ai-gate'
 import { getRemainingSearches, getEffectiveAiConfig, getMemberAiInstructions } from '@/lib/portal/ai-config'
 import { getNote } from '@/lib/portal/editable-notes'
+import { listConversations, getMostRecentConversation, listMessages, messagesToPanel } from '@/lib/portal/ai-conversations'
+import { listSellingVehicles } from '@/lib/portal/direct-pricing'
 import AiChatPanel from '@/components/portal-dark/AiChatPanel'
 import MemberAiInstructionsEditor from '@/components/portal-dark/MemberAiInstructionsEditor'
+import DirectPricingPanel from '@/components/portal-dark/DirectPricingPanel'
 
 export const dynamic = 'force-dynamic'
 
 export default async function MemberAiPage() {
   const { member } = await requireMemberAi()
-  const [{ remaining, allocated }, cfg, notice, instructions] = await Promise.all([
+  const [{ remaining, allocated }, cfg, notice, instructions, convRows, recent, sellingVehicles] = await Promise.all([
     getRemainingSearches(member.id),
     getEffectiveAiConfig(member.id),
     getNote('member_ai_notice'),
     getMemberAiInstructions(member.id),
+    listConversations(member.id),
+    getMostRecentConversation(member.id), // ⑱ 遷移後に直近会話を復元
+    listSellingVehicles(member.id), // ⑳ ダイレクトプライシング対象（販売中車両）
   ])
   const expansions = { image: cfg.imageEnabled, deep: cfg.deepEnabled, docgen: cfg.docgenEnabled }
+  const conversations = convRows.map((r) => ({ id: r.id, title: r.title, updatedAt: r.updated_at, pinned: !!r.pinned_at }))
+  const recentMessages = recent ? messagesToPanel(await listMessages(recent.id)) : []
 
   return (
     <div className="space-y-4">
@@ -38,7 +46,16 @@ export default async function MemberAiPage() {
 
       <MemberAiInstructionsEditor initial={instructions} />
 
-      <AiChatPanel initialRemaining={remaining} allocated={allocated} expansions={expansions} />
+      <DirectPricingPanel vehicles={sellingVehicles} />
+
+      <AiChatPanel
+        initialRemaining={remaining}
+        allocated={allocated}
+        expansions={expansions}
+        initialConversations={conversations}
+        initialConversationId={recent?.id ?? null}
+        initialMessages={recentMessages}
+      />
     </div>
   )
 }
