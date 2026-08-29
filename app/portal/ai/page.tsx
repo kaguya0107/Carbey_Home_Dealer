@@ -10,8 +10,9 @@ import DirectPricingPanel from '@/components/portal-dark/DirectPricingPanel'
 
 export const dynamic = 'force-dynamic'
 
-export default async function MemberAiPage() {
+export default async function MemberAiPage({ searchParams }: { searchParams: Promise<{ deal?: string }> }) {
   const { member } = await requireMemberAi()
+  const { deal: dealParam } = await searchParams
   const [{ remaining, allocated }, cfg, notice, instructions, convRows, recent, sellingVehicles] = await Promise.all([
     getRemainingSearches(member.id),
     getEffectiveAiConfig(member.id),
@@ -46,7 +47,7 @@ export default async function MemberAiPage() {
 
       <MemberAiInstructionsEditor initial={instructions} />
 
-      <DirectPricingPanel vehicles={sellingVehicles} />
+      <DirectPricingPanel vehicles={sellingVehicles} initialDealId={dealParam} />
 
       <AiChatPanel
         initialRemaining={remaining}

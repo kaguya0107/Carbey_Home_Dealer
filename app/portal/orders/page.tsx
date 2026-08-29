@@ -8,7 +8,9 @@ import { getOwnOnboarding } from '@/lib/portal/onboarding'
 import { getMemberByUserId } from '@/lib/portal/members'
 import { getLedgerBalance } from '@/lib/portal/ledger'
 import { listOwnActiveDeals, listOwnDealHistory, mapDealsByOrderId, DEAL_STAGE_LABEL } from '@/lib/portal/deals'
+import { listSellingVehicles } from '@/lib/portal/direct-pricing'
 import DealBoard from '@/components/portal-dark/DealBoard'
+import DirectPricingShortcut from '@/components/portal-dark/DirectPricingShortcut'
 import { ORDER_STATUS_LABEL, yen } from '@/lib/portal/labels'
 import { DarkCard, DarkCardHeader, DarkCardBody } from '@/components/portal-dark/DarkUI'
 import AntiqueGraceBanner from '@/components/portal-dark/AntiqueGraceBanner'
@@ -49,6 +51,8 @@ export default async function MemberOrdersPage({
   ])
   // ⑧ オーダー履歴から取引（案件）の詳細へ遷移できるようにするための突合
   const dealsByOrder = await mapDealsByOrderId(orders.map((o) => o.id))
+  // ⑳ ダイレクトプライシング露出（AI利用可の加盟者・販売中車両があるとき）
+  const sellingVehicles = member?.plan?.feature_ai ? await listSellingVehicles(member.id) : []
   const sp = await searchParams
   const graceLocked = grace ? !grace.tradingAllowed : false
   const isSemi = flowInfo?.flow === 'semi'
@@ -72,6 +76,9 @@ export default async function MemberOrdersPage({
           <div className={`text-lg font-bold ${balance > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>{yen(balance)}</div>
         </div>
       </div>
+
+      {/* ⑳ ダイレクトプライシングへのショートカット（販売中車両があるとき） */}
+      <DirectPricingShortcut vehicles={sellingVehicles} />
 
       {/* 古物商猶予の警告（黄=事前 / 赤=超過ロック） */}
       <AntiqueGraceBanner grace={grace} />

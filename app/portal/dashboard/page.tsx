@@ -16,6 +16,8 @@ import { getDealBoardSummary, listOwnActiveDeals, DEAL_STAGE_LABEL } from '@/lib
 import { listAnnouncements } from '@/lib/portal/announcements'
 import { hasConsented } from '@/lib/portal/agreements'
 import TermsConsentNotice from '@/components/portal-dark/TermsConsentNotice'
+import { listSellingVehicles } from '@/lib/portal/direct-pricing'
+import DirectPricingShortcut from '@/components/portal-dark/DirectPricingShortcut'
 import { listInvoices, INVOICE_KIND_LABEL, INVOICE_STATUS_LABEL } from '@/lib/portal/billing'
 import { getMonthlyReport } from '@/lib/portal/sales'
 import { getOwnAutoCapacity, getMemberWaitingPosition } from '@/lib/portal/auto-trading'
@@ -47,6 +49,8 @@ export default async function MemberDashboardPage() {
     listPlans(false), // #31 上位プラン紹介（有効プランのみ）
   ])
   const consent = await hasConsented(session.userId) // ⑬ 規約同意の状態（未同意なら常設バナー）
+  // ⑳ ダイレクトプライシング露出（AI利用可・販売中車両があるとき）
+  const sellingVehicles = member?.plan?.feature_ai ? await listSellingVehicles(member.id) : []
   const waitingPos = member && autoCapacity ? await getMemberWaitingPosition(member.id) : null // 受注待ちの順番（autoCapacity 依存）
   // 受注不可の理由が「全体上限のみ」（枠・資金はOK）なら予約導線を出す
   const canReserve = !!autoCapacity && !autoCapacity.canAccept && !autoCapacity.depositLocked && autoCapacity.availableSlots > 0 && autoCapacity.globalAvailable <= 0
@@ -101,6 +105,9 @@ export default async function MemberDashboardPage() {
           </p>
         </div>
       </div>
+
+      {/* ⑳ ダイレクトプライシングへのショートカット（販売中車両があるとき・目立つ位置） */}
+      <DirectPricingShortcut vehicles={sellingVehicles} />
 
       {/* ===== 半自動売買 進捗ボード（横軸・最上部に可視化） ===== */}
       {flow === 'semi' && (dealSummary.active > 0 || dealSummary.delivered > 0) && (
