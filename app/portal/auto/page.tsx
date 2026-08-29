@@ -1,6 +1,8 @@
 import { Bot, Package, Store, CheckCircle2, Clock, Gauge, Lock, Paperclip } from 'lucide-react'
 import { requireMember } from '@/lib/auth/session'
 import { getMemberByUserId } from '@/lib/portal/members'
+import { listSellingVehicles } from '@/lib/portal/direct-pricing'
+import DirectPricingShortcut from '@/components/portal-dark/DirectPricingShortcut'
 import { getOwnAutoCapacity, getMemberWaitingPosition } from '@/lib/portal/auto-trading'
 import { getMgmtFeePreview } from '@/lib/portal/mgmt-fee'
 import { listOwnAutoDeals } from '@/lib/portal/deals'
@@ -81,6 +83,8 @@ export default async function PortalAutoPage() {
   ])
   const canReserve = !capacity.canAccept && !capacity.depositLocked && capacity.availableSlots > 0 && capacity.globalAvailable <= 0
   const byStage = (key: DealStatusStage) => deals.filter((d) => d.status === key)
+  // ⑳ ダイレクトプライシング露出（AI利用可・販売中車両があるとき）
+  const sellingVehicles = member.plan?.feature_ai ? await listSellingVehicles(member.id) : []
 
   return (
     <div className="space-y-6">
@@ -88,6 +92,9 @@ export default async function PortalAutoPage() {
         <Bot className="h-6 w-6 text-brand-400" />
         <h1 className="text-xl font-bold text-white">自動売買</h1>
       </div>
+
+      {/* ⑳ ダイレクトプライシングへのショートカット（販売中車両があるとき） */}
+      <DirectPricingShortcut vehicles={sellingVehicles} />
 
       {/* 枠・受注状況 */}
       <div className="rounded-2xl border border-carbon-700 bg-carbon-900/60 p-5">

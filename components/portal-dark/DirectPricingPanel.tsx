@@ -9,8 +9,10 @@ import type { SellingVehicle, DpResult } from '@/lib/portal/direct-pricing'
  * ⑳ 簡易ダイレクトプライシング。販売中車両の想定価格を入力し、カーセンサー掲載データ内の順位と
  * 安い方の競合5件（URL付き）を表示。設定中は deal にフラグが立ち、案件ボードにも表示される。
  */
-export default function DirectPricingPanel({ vehicles }: { vehicles: SellingVehicle[] }) {
-  const [selectedId, setSelectedId] = useState(vehicles[0]?.id ?? '')
+export default function DirectPricingPanel({ vehicles, initialDealId }: { vehicles: SellingVehicle[]; initialDealId?: string }) {
+  const [selectedId, setSelectedId] = useState(
+    (initialDealId && vehicles.some((v) => v.id === initialDealId) ? initialDealId : vehicles[0]?.id) ?? '',
+  )
   const initial = vehicles.find((v) => v.id === selectedId)
   const [priceMan, setPriceMan] = useState(initial?.targetYen ? String(Math.round(initial.targetYen / 10_000)) : '')
   const [on, setOn] = useState(!!initial?.directPricingOn)
@@ -49,7 +51,7 @@ export default function DirectPricingPanel({ vehicles }: { vehicles: SellingVehi
   const input = 'rounded-lg border border-carbon-600 bg-carbon-900 px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20'
 
   return (
-    <div className="rounded-xl border border-carbon-700 bg-carbon-850/80 p-4">
+    <div id="direct-pricing" className="scroll-mt-20 rounded-xl border border-carbon-700 bg-carbon-850/80 p-4">
       <div className="flex items-center gap-2">
         <Tag className="h-4 w-4 text-brand-400" />
         <span className="text-sm font-semibold text-slate-200">ダイレクトプライシング（早期売却の価格判断）</span>
